@@ -1,0 +1,209 @@
+// DeioActiva - modelo base (Fase 1)
+// Decisiones tomadas respecto del prompt original (documentadas en /DECISIONES.md del repo):
+// - Role.code es String @unique (no un enum de Prisma) para poder sumar roles sin migrar.
+// - Se agrego RefreshToken como tabla propia (permite revocar sesiones individualmente).
+// - Se agrego createdById en Module y Milestone para auditoria consistente con WorkItem.
+// - WorkItemHistory.action es un enum (HistoryAction) en vez de string libre.
+// - Module.slug y Role.code son unicos.
+// - No se agrega fecha objetivo a Module todavia (el prompt original lo deja para una fase futura).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  name      String
+  users     User[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("roles")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  fullName     String
+  roleId       String
+  role         Role     @relation(fields: [roleId], references: [id])
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  refreshTokens       RefreshToken[]
+  createdModules      Module[]           @relation("ModuleCreatedBy")
+  assignedWorkItems   WorkItem[]         @relation("WorkItemAssignee")
+  createdWorkItems    WorkItem[]         @relation("WorkItemCreatedBy")
+  comments            WorkItemComment[]
+  historyEntries      WorkItemHistory[]
+  createdMilestones   Milestone[]        @relation("MilestoneCreatedBy")
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id                String    @id @default(uuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash         String
+  expiresAt         DateTime
+  revoked           Boolean   @default(false)
+  replacedByTokenId String?
+  userAgent         String?
+  ipAddress         String?
+  createdAt         DateTime  @default(now())
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model Module {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  description String?  @db.Text
+  parentId    String?
+  parent      Module?  @relation("ModuleHierarchy", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children    Module[] @relation("ModuleHierarchy")
+  order       Int      @default(0)
+  active      Boolean  @default(true)
+  createdById String?
+  createdBy   User?    @relation("ModuleCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workItems WorkItem[]
+
+  @@index([parentId])
+  @@map("modules")
+}
+
+enum WorkItemType {
+  ERROR
+  REQUIREMENT
+  IMPROVEMENT
+  TASK
+  TEST
+  ANALYSIS
+}
+
+enum WorkItemStatus {
+  PENDING
+  ANALYSIS
+  PLANNED
+  DEVELOPMENT
+  TESTING
+  BLOCKED
+  COMPLETED
+  DISCARDED
+}
+
+enum WorkItemPriority {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+model WorkItem {
+  id                 String           @id @default(uuid())
+  moduleId           String
+  module             Module           @relation(fields: [moduleId], references: [id])
+  type               WorkItemType
+  title              String
+  description        String?          @db.Text
+  status             WorkItemStatus   @default(PENDING)
+  priority           WorkItemPriority @default(MEDIUM)
+  assignedToId       String?
+  assignedTo         User?            @relation("WorkItemAssignee", fields: [assignedToId], references: [id])
+  createdById        String
+  createdBy          User             @relation("WorkItemCreatedBy", fields: [createdById], references: [id])
+  plannedStart       DateTime?
+  plannedEnd         DateTime?
+  dueDate            DateTime?
+  actualStart        DateTime?
+  actualEnd          DateTime?
+  progressPercentage Int              @default(0)
+  blocked            Boolean          @default(false)
+  blockReason        String?          @db.Text
+  versionTarget      String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  comments WorkItemComment[]
+  history  WorkItemHistory[]
+
+  @@index([moduleId])
+  @@index([assignedToId])
+  @@index([status])
+  @@map("work_items")
+}
+
+model WorkItemComment {
+  id         String   @id @default(uuid())
+  workItemId String
+  workItem   WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  authorId   String
+  author     User     @relation(fields: [authorId], references: [id])
+  text       String   @db.Text
+  createdAt  DateTime @default(now())
+
+  @@index([workItemId])
+  @@map("work_item_comments")
+}
+
+enum HistoryAction {
+  CREATED
+  UPDATED
+  STATUS_CHANGED
+  ASSIGNED
+  BLOCKED
+  UNBLOCKED
+  COMMENTED
+  DELETED
+}
+
+model WorkItemHistory {
+  id         String        @id @default(uuid())
+  workItemId String
+  workItem   WorkItem      @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User          @relation(fields: [userId], references: [id])
+  action     HistoryAction
+  beforeJson Json?
+  afterJson  Json?
+  createdAt  DateTime      @default(now())
+
+  @@index([workItemId])
+  @@map("work_item_history")
+}
+
+enum MilestoneStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  AT_RISK
+  DELAYED
+}
+
+model Milestone {
+  id          String          @id @default(uuid())
+  name        String
+  description String?         @db.Text
+  dueDate     DateTime
+  status      MilestoneStatus @default(PENDING)
+  createdById String?
+  createdBy   User?           @relation("MilestoneCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@map("milestones")
+}
