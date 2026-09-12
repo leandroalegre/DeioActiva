@@ -151,13 +151,17 @@ model WorkItem {
 }
 
 model WorkItemComment {
-  id         String   @id @default(uuid())
+  id         String    @id @default(uuid())
   workItemId String
-  workItem   WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  workItem   WorkItem  @relation(fields: [workItemId], references: [id], onDelete: Cascade)
   authorId   String
-  author     User     @relation(fields: [authorId], references: [id])
-  text       String   @db.Text
-  createdAt  DateTime @default(now())
+  author     User      @relation(fields: [authorId], references: [id])
+  text       String    @db.Text
+  // Fecha de seguimiento opcional del comentario (ej: "revisar esto antes del 20/09"),
+  // para poder marcar un pendiente puntual sin tener que crear una tarea nueva.
+  dueDate    DateTime?
+  resolved   Boolean   @default(false)
+  createdAt  DateTime  @default(now())
 
   @@index([workItemId])
   @@map("work_item_comments")

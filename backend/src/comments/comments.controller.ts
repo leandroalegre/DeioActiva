@@ -1,8 +1,9 @@
-import { Body, Controller, Get, Query, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Query, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { IsUUID } from 'class-validator';
 import { CommentsService } from './comments.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
+import { UpdateCommentDto } from './dto/update-comment.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../auth/types/authenticated-user.type';
 
@@ -25,5 +26,10 @@ export class CommentsController {
   @Post()
   create(@Body() dto: CreateCommentDto, @CurrentUser() user: AuthenticatedUser) {
     return this.commentsService.create(dto, user.id);
+  }
+
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() dto: UpdateCommentDto) {
+    return this.commentsService.update(id, dto);
   }
 }
