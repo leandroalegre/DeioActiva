@@ -44,7 +44,8 @@ export function WorkItemDetailModal({ item, onClose }: { item: WorkItem; onClose
 
   function formatDate(value?: string | null) {
     if (!value) return null;
-    return new Date(value).toLocaleDateString('es-AR');
+    // Mismo motivo que en RoadmapPage: plannedStart/plannedEnd son "solo fecha" en UTC.
+    return new Date(value).toLocaleDateString('es-AR', { timeZone: 'UTC' });
   }
 
   return (

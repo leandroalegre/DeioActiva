@@ -13,7 +13,9 @@ function statusMeta(status: Milestone['status']) {
 }
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' });
+  // Las fechas de hitos son "solo fecha" (guardadas a medianoche UTC); si se formatean en
+  // hora local, en timezones negativos (ej. Argentina, UTC-3) se ve un dia antes. Se fuerza UTC.
+  return new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' });
 }
 
 export function RoadmapPage() {

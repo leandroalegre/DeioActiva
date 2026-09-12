@@ -22,12 +22,16 @@ const STATUS_COLOR: Record<WorkItemStatus, string> = {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+// plannedStart/plannedEnd llegan como "solo fecha" guardados a medianoche UTC. Si se leen con
+// los getters/setters locales (getFullYear/getMonth/getDate), en timezones negativos (ej.
+// Argentina, UTC-3) el dia queda corrido uno para atras. Por eso todo el manejo de fechas de
+// este archivo trabaja en UTC de punta a punta.
 function startOfDay(d: Date) {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
 }
 
 function monthLabel(d: Date) {
-  return d.toLocaleDateString('es-AR', { month: 'short', year: '2-digit' });
+  return d.toLocaleDateString('es-AR', { month: 'short', year: '2-digit', timeZone: 'UTC' });
 }
 
 export function GanttPage() {
@@ -70,11 +74,11 @@ export function GanttPage() {
     if (!range) return [];
     const result: { label: string; offset: number }[] = [];
     const cursor = new Date(range.start);
-    cursor.setDate(1);
+    cursor.setUTCDate(1);
     while (cursor.getTime() < range.end) {
       const offset = ((cursor.getTime() - range.start) / DAY_MS / range.totalDays) * 100;
       if (offset >= 0) result.push({ label: monthLabel(cursor), offset });
-      cursor.setMonth(cursor.getMonth() + 1);
+      cursor.setUTCMonth(cursor.getUTCMonth() + 1);
     }
     return result;
   }, [range]);
