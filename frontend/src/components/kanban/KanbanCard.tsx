@@ -15,7 +15,7 @@ export function KanbanCard({
     <div
       draggable
       onDragStart={(e) => onDragStart(e, item)}
-      className="cursor-grab rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition-shadow hover:shadow-md active:cursor-grabbing"
+      className="cursor-grab rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition-shadow hover:shadow-md active:cursor-grabbing"
     >
       <div className="mb-2 flex items-center justify-between gap-2">
         <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-600">

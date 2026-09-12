@@ -70,7 +70,7 @@ export function TareasPage() {
       )}
 
       {!isLoading && !isError && (
-        <div className="flex flex-1 gap-4 overflow-x-auto pb-2">
+        <div className="flex flex-1 gap-6 overflow-x-auto pb-2">
           {WORK_ITEM_STATUSES.map((s) => (
             <KanbanColumn
               key={s.value}

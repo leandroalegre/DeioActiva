@@ -28,7 +28,7 @@ export function KanbanColumn({
         setIsOver(false);
         onDrop(status);
       }}
-      className={`flex w-72 shrink-0 flex-col rounded-xl border bg-slate-100/60 p-3 transition-colors ${
+      className={`flex w-[380px] shrink-0 flex-col rounded-xl border bg-slate-100/60 p-3 transition-colors ${
         isOver ? 'border-brand-400 bg-brand-50' : 'border-slate-200'
       }`}
     >
