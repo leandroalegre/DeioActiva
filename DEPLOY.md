@@ -120,11 +120,21 @@ Si algo no carga:
 
 ## 7. Redeploys futuros
 
+**Solo frontend** (CSS/UI, sin cambios de backend) — un unico comando, evita errores de
+pegado multi-linea en la Terminal de cPanel y limpia los assets viejos del docroot
+automaticamente:
+
+```
+bash ~/deioactiva-src/deploy/deploy-frontend.sh
+```
+
+**Con cambios de backend** (nuevas rutas, cambios de schema, etc.):
+
 ```
 cd ~/deioactiva-src
 git pull
 cd backend && npm ci && npx prisma migrate deploy && npm run build && pm2 restart deioactiva-api
-cd ../frontend && npm ci && npm run build && cp -r dist/* /home/sistemacbahost/deioactiva.sistemascloud.ar/
+bash ~/deioactiva-src/deploy/deploy-frontend.sh
 ```
 
 ## Pendiente / a decidir
