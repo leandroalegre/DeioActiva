@@ -19,8 +19,10 @@ export class CreateUserDto {
   @IsUUID()
   roleId: string;
 
+  // Sin default de clase: pisaria active (reactivaria una cuenta desactivada) en cualquier
+  // PATCH parcial que no lo incluya explicitamente. Default real solo en el service, en create().
   @ApiPropertyOptional({ default: true })
   @IsOptional()
   @IsBoolean()
-  active?: boolean = true;
+  active?: boolean;
 }

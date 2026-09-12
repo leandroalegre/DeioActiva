@@ -16,8 +16,11 @@ export class CreateMilestoneDto {
   @IsDateString()
   dueDate: string;
 
+  // Sin default de clase a proposito (ver nota igual en CreateWorkItemDto): un default aca
+  // se filtra a UpdateMilestoneDto (PartialType) y pisa el estado real en cualquier PATCH que
+  // no lo incluya explicitamente. El default real se aplica en el service, solo en create().
   @ApiPropertyOptional({ enum: MilestoneStatus, default: MilestoneStatus.PENDING })
   @IsOptional()
   @IsEnum(MilestoneStatus)
-  status?: MilestoneStatus = MilestoneStatus.PENDING;
+  status?: MilestoneStatus;
 }

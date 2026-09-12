@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { MilestoneStatus } from '@prisma/client';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { CreateMilestoneDto } from './dto/create-milestone.dto';
 import { UpdateMilestoneDto } from './dto/update-milestone.dto';
@@ -41,7 +42,7 @@ export class MilestonesService {
         // Prisma/MySQL necesitan un Date real (o un ISO-8601 con hora) para una columna DateTime;
         // pasar el string "corto" tal cual rompe el insert con un 500 generico.
         dueDate: new Date(dto.dueDate),
-        status: dto.status,
+        status: dto.status ?? MilestoneStatus.PENDING,
         createdById,
       },
     });

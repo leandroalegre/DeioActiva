@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { HistoryAction, Prisma } from '@prisma/client';
+import { HistoryAction, Prisma, WorkItemPriority } from '@prisma/client';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { HistoryService } from '../history/history.service';
 import { CreateWorkItemDto } from './dto/create-work-item.dto';
@@ -70,7 +70,7 @@ export class WorkItemsService {
         type: dto.type,
         title: dto.title,
         description: dto.description,
-        priority: dto.priority,
+        priority: dto.priority ?? WorkItemPriority.MEDIUM,
         assignedToId: dto.assignedToId,
         plannedStart: toDateOrUndefined(dto.plannedStart),
         plannedEnd: toDateOrUndefined(dto.plannedEnd),

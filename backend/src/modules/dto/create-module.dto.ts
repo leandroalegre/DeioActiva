@@ -23,13 +23,17 @@ export class CreateModuleDto {
   @IsUUID()
   parentId?: string;
 
+  // Sin default de clase (mismo motivo que en work-items/milestones): pisaria order en
+  // cualquier PATCH parcial. El default real se aplica en el service, solo en create().
   @ApiPropertyOptional({ default: 0 })
   @IsOptional()
   @IsInt()
-  order?: number = 0;
+  order?: number;
 
+  // Sin default de clase: pisaria active (por ej. reactivaria un modulo desactivado) en
+  // cualquier PATCH parcial que no lo incluya. Default real solo en el service, en create().
   @ApiPropertyOptional({ default: true })
   @IsOptional()
   @IsBoolean()
-  active?: boolean = true;
+  active?: boolean;
 }
