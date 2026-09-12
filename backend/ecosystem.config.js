@@ -12,7 +12,7 @@ module.exports = {
     {
       name: 'deioactiva-api',
       cwd: __dirname,
-      script: 'dist/main.js',
+      script: 'dist/src/main.js',
       instances: 1,
       exec_mode: 'fork',
       autorestart: true,
