@@ -143,17 +143,32 @@ export function GanttPage() {
                         ((end - start) / DAY_MS / range.totalDays) * 100,
                       );
                       const statusMeta = WORK_ITEM_STATUSES.find((s) => s.value === item.status);
+                      const label = `${item.title} (${statusMeta?.label ?? item.status})`;
+                      const narrow = width < 6;
                       return (
                         <div key={item.id} className="relative h-7">
                           <div
-                            className={`absolute h-7 rounded-md ${STATUS_COLOR[item.status]} flex items-center overflow-hidden px-2 shadow-sm`}
+                            className={`absolute h-7 rounded-md ${STATUS_COLOR[item.status]} shadow-sm ${
+                              narrow ? '' : 'flex items-center overflow-hidden px-2'
+                            }`}
                             style={{ left: `${left}%`, width: `${width}%` }}
-                            title={`${item.title} (${statusMeta?.label ?? item.status})`}
+                            title={label}
                           >
-                            <span className="truncate text-xs font-medium text-white">
+                            {!narrow && (
+                              <span className="truncate text-xs font-medium text-white">
+                                {item.title}
+                              </span>
+                            )}
+                          </div>
+                          {narrow && (
+                            <span
+                              className="absolute top-0 flex h-7 items-center whitespace-nowrap pl-1 text-xs font-medium text-slate-700"
+                              style={{ left: `calc(${left}% + ${width}%)` }}
+                              title={label}
+                            >
                               {item.title}
                             </span>
-                          </div>
+                          )}
                         </div>
                       );
                     })}

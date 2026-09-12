@@ -32,6 +32,7 @@ export function WorkItemFormModal({
   const [description, setDescription] = useState(workItem?.description ?? '');
   const [plannedStart, setPlannedStart] = useState(workItem?.plannedStart?.slice(0, 10) ?? '');
   const [plannedEnd, setPlannedEnd] = useState(workItem?.plannedEnd?.slice(0, 10) ?? '');
+  const [dueDate, setDueDate] = useState(workItem?.dueDate?.slice(0, 10) ?? '');
   const [milestoneId, setMilestoneId] = useState(workItem?.milestoneId ?? '');
   const [error, setError] = useState<string | null>(null);
 
@@ -45,6 +46,7 @@ export function WorkItemFormModal({
         description: description || undefined,
         plannedStart: plannedStart || undefined,
         plannedEnd: plannedEnd || undefined,
+        dueDate: dueDate || undefined,
         milestoneId: milestoneId || null,
       };
       return isEditing ? updateWorkItem(workItem!.id, payload) : createWorkItem(payload);
@@ -197,6 +199,22 @@ export function WorkItemFormModal({
           <p className="-mt-2 text-xs text-slate-400">
             Cargá estas dos fechas para que la tarea aparezca en la vista Gantt.
           </p>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">
+              Fecha límite (opcional)
+            </label>
+            <input
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            />
+            <p className="mt-1 text-xs text-slate-400">
+              Distinta del fin planificado: si se pasa esta fecha y la tarea no está
+              Completada/Descartada, la tarjeta del Kanban se marca como Vencida.
+            </p>
+          </div>
 
           {error && <p className="text-sm text-red-600">{error}</p>}
 

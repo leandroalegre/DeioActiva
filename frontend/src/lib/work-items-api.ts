@@ -25,6 +25,7 @@ export interface CreateWorkItemPayload {
   priority?: WorkItemPriority;
   plannedStart?: string;
   plannedEnd?: string;
+  dueDate?: string;
   milestoneId?: string | null;
 }
 
