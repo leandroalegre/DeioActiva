@@ -101,6 +101,42 @@ export function RoadmapPage() {
                     </div>
                   </div>
                   {m.description && <p className="mt-2 text-sm text-slate-600">{m.description}</p>}
+
+                  {(m.workItems?.length ?? 0) > 0 && (() => {
+                    const items = m.workItems!;
+                    const done = items.filter((w) => w.status === 'COMPLETED').length;
+                    const pct = Math.round((done / items.length) * 100);
+                    return (
+                      <div className="mt-3 border-t border-slate-100 pt-3">
+                        <div className="mb-1 flex items-center justify-between text-xs text-slate-500">
+                          <span>
+                            Tareas asociadas: {done}/{items.length} completadas
+                          </span>
+                          <span>{pct}%</span>
+                        </div>
+                        <div className="mb-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                          <div
+                            className="h-full rounded-full bg-brand-500"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        <ul className="space-y-0.5">
+                          {items.map((w) => (
+                            <li key={w.id} className="flex items-center gap-1.5 text-xs text-slate-500">
+                              <span
+                                className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                                  w.status === 'COMPLETED' ? 'bg-green-500' : 'bg-slate-300'
+                                }`}
+                              />
+                              <span className={w.status === 'COMPLETED' ? 'line-through text-slate-400' : ''}>
+                                {w.title}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    );
+                  })()}
                 </div>
               </li>
             );

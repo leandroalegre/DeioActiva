@@ -42,6 +42,8 @@ export interface WorkItem {
   blocked: boolean;
   blockReason?: string | null;
   versionTarget?: string | null;
+  milestoneId?: string | null;
+  milestone?: { id: string; name: string } | null;
   createdAt: string;
   updatedAt: string;
   _count?: { comments: number };

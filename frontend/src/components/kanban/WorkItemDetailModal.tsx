@@ -10,7 +10,15 @@ import type { WorkItem } from '../../types/work-item';
 // que abra la tarjeta despues entiende por que esta en el estado en el que esta.
 // Reutiliza el modelo WorkItemComment y los endpoints GET/POST /comments, que ya existian
 // en el backend desde Fase 1 pero no tenian ninguna pantalla que los usara.
-export function WorkItemDetailModal({ item, onClose }: { item: WorkItem; onClose: () => void }) {
+export function WorkItemDetailModal({
+  item,
+  onClose,
+  onEdit,
+}: {
+  item: WorkItem;
+  onClose: () => void;
+  onEdit: (item: WorkItem) => void;
+}) {
   const queryClient = useQueryClient();
   const [text, setText] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -53,9 +61,17 @@ export function WorkItemDetailModal({ item, onClose }: { item: WorkItem; onClose
       <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
         <div className="mb-1 flex items-start justify-between gap-3">
           <h2 className="text-lg font-semibold text-slate-800">{item.title}</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
-            ✕
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              onClick={() => onEdit(item)}
+              className="rounded px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50"
+            >
+              Editar
+            </button>
+            <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+              ✕
+            </button>
+          </div>
         </div>
 
         <div className="mb-4 flex flex-wrap gap-2">
@@ -77,6 +93,12 @@ export function WorkItemDetailModal({ item, onClose }: { item: WorkItem; onClose
             <dt className="inline font-medium text-slate-600">Módulo: </dt>
             <dd className="inline">{item.module?.name}</dd>
           </div>
+          {item.milestone && (
+            <div>
+              <dt className="inline font-medium text-slate-600">Hito: </dt>
+              <dd className="inline">{item.milestone.name}</dd>
+            </div>
+          )}
           {item.assignedTo && (
             <div>
               <dt className="inline font-medium text-slate-600">Asignado a: </dt>

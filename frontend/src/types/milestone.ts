@@ -1,5 +1,12 @@
 export type MilestoneStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'AT_RISK' | 'DELAYED';
 
+export interface MilestoneWorkItemRef {
+  id: string;
+  title: string;
+  status: string;
+  progressPercentage: number;
+}
+
 export interface Milestone {
   id: string;
   name: string;
@@ -7,6 +14,7 @@ export interface Milestone {
   dueDate: string;
   status: MilestoneStatus;
   createdAt: string;
+  workItems?: MilestoneWorkItemRef[];
 }
 
 export const MILESTONE_STATUSES: { value: MilestoneStatus; label: string; color: string }[] = [

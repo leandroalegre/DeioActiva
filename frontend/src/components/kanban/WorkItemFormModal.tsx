@@ -1,31 +1,60 @@
 import { FormEvent, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { createWorkItem } from '../../lib/work-items-api';
+import { createWorkItem, updateWorkItem } from '../../lib/work-items-api';
 import { fetchModuleTree, flattenModules } from '../../lib/modules-api';
+import { fetchMilestones } from '../../lib/milestones-api';
 import { WORK_ITEM_PRIORITIES, WORK_ITEM_TYPES } from '../../types/work-item';
-import type { WorkItemPriority, WorkItemType } from '../../types/work-item';
+import type { WorkItem, WorkItemPriority, WorkItemType } from '../../types/work-item';
 
-export function NewWorkItemModal({ onClose }: { onClose: () => void }) {
+// Modal de creacion/edicion de una tarea (WorkItem). Antes solo existia NewWorkItemModal
+// (crear); se unifico con edicion a pedido del usuario ("no me deja editar una tarea"),
+// siguiendo el mismo patron create+edit que ya usan Modulos/Usuarios/Hitos.
+// Tambien permite asociar la tarea a un Hito (opcional), para el seguimiento de progreso
+// por hito en el Roadmap.
+export function WorkItemFormModal({
+  workItem,
+  onClose,
+}: {
+  workItem?: WorkItem;
+  onClose: () => void;
+}) {
   const queryClient = useQueryClient();
+  const isEditing = Boolean(workItem);
+
   const { data: moduleTree } = useQuery({ queryKey: ['modules'], queryFn: fetchModuleTree });
   const moduleOptions = flattenModules(moduleTree ?? []);
+  const { data: milestones } = useQuery({ queryKey: ['milestones'], queryFn: fetchMilestones });
 
-  const [title, setTitle] = useState('');
-  const [moduleId, setModuleId] = useState('');
-  const [type, setType] = useState<WorkItemType>('TASK');
-  const [priority, setPriority] = useState<WorkItemPriority>('MEDIUM');
-  const [description, setDescription] = useState('');
-  const [plannedStart, setPlannedStart] = useState('');
-  const [plannedEnd, setPlannedEnd] = useState('');
+  const [title, setTitle] = useState(workItem?.title ?? '');
+  const [moduleId, setModuleId] = useState(workItem?.moduleId ?? '');
+  const [type, setType] = useState<WorkItemType>(workItem?.type ?? 'TASK');
+  const [priority, setPriority] = useState<WorkItemPriority>(workItem?.priority ?? 'MEDIUM');
+  const [description, setDescription] = useState(workItem?.description ?? '');
+  const [plannedStart, setPlannedStart] = useState(workItem?.plannedStart?.slice(0, 10) ?? '');
+  const [plannedEnd, setPlannedEnd] = useState(workItem?.plannedEnd?.slice(0, 10) ?? '');
+  const [milestoneId, setMilestoneId] = useState(workItem?.milestoneId ?? '');
   const [error, setError] = useState<string | null>(null);
 
   const mutation = useMutation({
-    mutationFn: createWorkItem,
+    mutationFn: () => {
+      const payload = {
+        title,
+        moduleId,
+        type,
+        priority,
+        description: description || undefined,
+        plannedStart: plannedStart || undefined,
+        plannedEnd: plannedEnd || undefined,
+        milestoneId: milestoneId || null,
+      };
+      return isEditing ? updateWorkItem(workItem!.id, payload) : createWorkItem(payload);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['work-items'] });
+      queryClient.invalidateQueries({ queryKey: ['milestones'] });
       onClose();
     },
-    onError: () => setError('No se pudo crear la tarea. Revisá los datos e intentá de nuevo.'),
+    onError: () => setError('No se pudo guardar la tarea. Revisá los datos e intentá de nuevo.'),
   });
 
   function handleSubmit(e: FormEvent) {
@@ -39,21 +68,15 @@ export function NewWorkItemModal({ onClose }: { onClose: () => void }) {
       setError('La fecha de fin planificada no puede ser anterior a la de inicio.');
       return;
     }
-    mutation.mutate({
-      title,
-      moduleId,
-      type,
-      priority,
-      description: description || undefined,
-      plannedStart: plannedStart || undefined,
-      plannedEnd: plannedEnd || undefined,
-    });
+    mutation.mutate();
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-        <h2 className="mb-4 text-lg font-semibold text-slate-800">Nueva tarea</h2>
+      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
+        <h2 className="mb-4 text-lg font-semibold text-slate-800">
+          {isEditing ? 'Editar tarea' : 'Nueva tarea'}
+        </h2>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700">Título</label>
@@ -115,10 +138,32 @@ export function NewWorkItemModal({ onClose }: { onClose: () => void }) {
 
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700">
+              Hito asociado (opcional)
+            </label>
+            <select
+              value={milestoneId}
+              onChange={(e) => setMilestoneId(e.target.value)}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            >
+              <option value="">Sin hito</option>
+              {milestones?.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-slate-400">
+              Si esta tarea es parte de un hito del Roadmap, elegilo acá para que cuente en su
+              progreso.
+            </p>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">
               Descripción (opcional)
             </label>
             <textarea
-              value={description}
+              value={description ?? ''}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
@@ -168,7 +213,7 @@ export function NewWorkItemModal({ onClose }: { onClose: () => void }) {
               disabled={mutation.isPending}
               className="rounded-lg bg-brand-500 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
             >
-              {mutation.isPending ? 'Creando...' : 'Crear tarea'}
+              {mutation.isPending ? 'Guardando...' : isEditing ? 'Guardar cambios' : 'Crear tarea'}
             </button>
           </div>
         </form>

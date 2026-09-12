@@ -72,4 +72,9 @@ export class CreateWorkItemDto {
   @IsOptional()
   @IsString()
   versionTarget?: string;
+
+  @ApiPropertyOptional({ description: 'Hito (milestone) al que esta tarea contribuye, opcional' })
+  @IsOptional()
+  @IsUUID()
+  milestoneId?: string;
 }

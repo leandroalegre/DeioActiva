@@ -18,6 +18,12 @@ export class MilestonesService {
         skip: (page - 1) * pageSize,
         take: pageSize,
         orderBy: { dueDate: 'asc' },
+        include: {
+          workItems: {
+            select: { id: true, title: true, status: true, progressPercentage: true },
+            orderBy: { createdAt: 'asc' },
+          },
+        },
       }),
       this.prisma.milestone.count(),
     ]);
@@ -26,7 +32,15 @@ export class MilestonesService {
   }
 
   async findOne(id: string) {
-    const milestone = await this.prisma.milestone.findUnique({ where: { id } });
+    const milestone = await this.prisma.milestone.findUnique({
+      where: { id },
+      include: {
+        workItems: {
+          select: { id: true, title: true, status: true, progressPercentage: true },
+          orderBy: { createdAt: 'asc' },
+        },
+      },
+    });
     if (!milestone) {
       throw new NotFoundException('Hito no encontrado');
     }

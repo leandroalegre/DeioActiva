@@ -11,6 +11,7 @@ const INCLUDE = {
   module: { select: { id: true, name: true, slug: true } },
   assignedTo: { select: { id: true, fullName: true, email: true } },
   createdBy: { select: { id: true, fullName: true, email: true } },
+  milestone: { select: { id: true, name: true } },
   _count: { select: { comments: true } },
 };
 
@@ -77,6 +78,7 @@ export class WorkItemsService {
         dueDate: toDateOrUndefined(dto.dueDate),
         progressPercentage: dto.progressPercentage ?? 0,
         versionTarget: dto.versionTarget,
+        milestoneId: dto.milestoneId,
         createdById,
       },
       include: INCLUDE,

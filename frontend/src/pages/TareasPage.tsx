@@ -4,14 +4,16 @@ import { fetchWorkItems, updateWorkItemStatus } from '../lib/work-items-api';
 import { WORK_ITEM_STATUSES } from '../types/work-item';
 import type { WorkItem, WorkItemStatus } from '../types/work-item';
 import { KanbanColumn } from '../components/kanban/KanbanColumn';
-import { NewWorkItemModal } from '../components/kanban/NewWorkItemModal';
+import { WorkItemFormModal } from '../components/kanban/WorkItemFormModal';
 import { WorkItemDetailModal } from '../components/kanban/WorkItemDetailModal';
 
 // Tablero Kanban de Tareas (WorkItem). Reemplaza el placeholder de Fase 1: agregado a
 // pedido despues de la entrega inicial, reutilizando GET/PATCH /work-items ya existentes.
 export function TareasPage() {
   const queryClient = useQueryClient();
-  const [showNewModal, setShowNewModal] = useState(false);
+  const [formModal, setFormModal] = useState<
+    { mode: 'closed' } | { mode: 'create' } | { mode: 'edit'; item: WorkItem }
+  >({ mode: 'closed' });
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<WorkItem | null>(null);
 
@@ -64,7 +66,7 @@ export function TareasPage() {
           </p>
         </div>
         <button
-          onClick={() => setShowNewModal(true)}
+          onClick={() => setFormModal({ mode: 'create' })}
           className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600"
         >
           + Nueva tarea
@@ -94,8 +96,25 @@ export function TareasPage() {
         </div>
       )}
 
-      {showNewModal && <NewWorkItemModal onClose={() => setShowNewModal(false)} />}
-      {selected && <WorkItemDetailModal item={selected} onClose={() => setSelectedItem(null)} />}
+      {formModal.mode === 'create' && (
+        <WorkItemFormModal onClose={() => setFormModal({ mode: 'closed' })} />
+      )}
+      {formModal.mode === 'edit' && (
+        <WorkItemFormModal
+          workItem={formModal.item}
+          onClose={() => setFormModal({ mode: 'closed' })}
+        />
+      )}
+      {selected && (
+        <WorkItemDetailModal
+          item={selected}
+          onClose={() => setSelectedItem(null)}
+          onEdit={(item) => {
+            setSelectedItem(null);
+            setFormModal({ mode: 'edit', item });
+          }}
+        />
+      )}
     </div>
   );
 }

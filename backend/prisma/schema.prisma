@@ -126,6 +126,8 @@ model WorkItem {
   assignedTo         User?            @relation("WorkItemAssignee", fields: [assignedToId], references: [id])
   createdById        String
   createdBy          User             @relation("WorkItemCreatedBy", fields: [createdById], references: [id])
+  milestoneId        String?
+  milestone          Milestone?       @relation(fields: [milestoneId], references: [id])
   plannedStart       DateTime?
   plannedEnd         DateTime?
   dueDate            DateTime?
@@ -144,6 +146,7 @@ model WorkItem {
   @@index([moduleId])
   @@index([assignedToId])
   @@index([status])
+  @@index([milestoneId])
   @@map("work_items")
 }
 
@@ -204,6 +207,10 @@ model Milestone {
   createdBy   User?           @relation("MilestoneCreatedBy", fields: [createdById], references: [id])
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
+
+  // Tareas (WorkItem) que se marcaron como parte de este hito, para poder mostrar en el
+  // Roadmap cuantas de las tareas asociadas ya estan completadas.
+  workItems   WorkItem[]
 
   @@map("milestones")
 }

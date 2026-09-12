@@ -25,10 +25,20 @@ export interface CreateWorkItemPayload {
   priority?: WorkItemPriority;
   plannedStart?: string;
   plannedEnd?: string;
+  milestoneId?: string | null;
 }
+
+export type UpdateWorkItemPayload = Partial<CreateWorkItemPayload> & {
+  status?: WorkItemStatus;
+};
 
 export async function createWorkItem(payload: CreateWorkItemPayload): Promise<WorkItem> {
   const { data } = await apiClient.post<WorkItem>('/work-items', payload);
+  return data;
+}
+
+export async function updateWorkItem(id: string, payload: UpdateWorkItemPayload): Promise<WorkItem> {
+  const { data } = await apiClient.patch<WorkItem>(`/work-items/${id}`, payload);
   return data;
 }
 
