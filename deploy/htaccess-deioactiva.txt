@@ -1,0 +1,54 @@
+# =============================================================================
+# .htaccess — deioactiva.sistemascloud.ar
+# Ubicacion en servidor: /home/sistemacbahost/deioactiva.sistemascloud.ar/.htaccess
+#   (raiz del subdominio, junto al build del frontend)
+#
+# Funcion doble (mismo patron que dnt.sistemascloud.ar):
+#   1. Proxy /api/ -> NestJS corriendo en 127.0.0.1:3001 (PM2: deioactiva-api)
+#   2. React SPA routing -> todas las rutas no-archivo van a index.html
+# =============================================================================
+
+Options -MultiViews
+RewriteEngine On
+
+# 1. PROXY: /api/ -> backend NestJS (puerto 3001)
+# El backend ya expone sus rutas bajo /api (ver main.ts: setGlobalPrefix('api')),
+# asi que el proxy es 1 a 1, sin sacar el prefijo.
+<IfModule mod_proxy.c>
+  ProxyRequests Off
+  ProxyPreserveHost On
+
+  RequestHeader set X-Forwarded-Proto "https"
+  RequestHeader set X-Forwarded-For "%{REMOTE_ADDR}s"
+
+  ProxyPass        /api/  http://127.0.0.1:3001/api/
+  ProxyPassReverse /api/  http://127.0.0.1:3001/api/
+</IfModule>
+
+# 2. SPA ROUTING: React Router (todo lo demas -> index.html)
+<IfModule mod_rewrite.c>
+  RewriteCond %{REQUEST_URI} !^/api/
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^ /index.html [L]
+</IfModule>
+
+# 3. Seguridad basica
+<FilesMatch "\.(env|sh|json|lock|log)$">
+  Order allow,deny
+  Deny from all
+</FilesMatch>
+
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# 4. Cache de assets estaticos
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType text/css "access plus 1 year"
+  ExpiresByType application/javascript "access plus 1 year"
+  ExpiresByType image/svg+xml "access plus 1 year"
+</IfModule>
