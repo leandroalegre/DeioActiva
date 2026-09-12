@@ -17,3 +17,25 @@ export function flattenModules(
     ...flattenModules(node.children ?? [], depth + 1),
   ]);
 }
+
+export interface ModulePayload {
+  name: string;
+  slug: string;
+  description?: string;
+  parentId?: string;
+  order?: number;
+  active?: boolean;
+}
+
+export async function createModule(payload: ModulePayload): Promise<ModuleTreeNode> {
+  const { data } = await apiClient.post<ModuleTreeNode>('/modules', payload);
+  return data;
+}
+
+export async function updateModule(
+  id: string,
+  payload: Partial<ModulePayload>,
+): Promise<ModuleTreeNode> {
+  const { data } = await apiClient.patch<ModuleTreeNode>(`/modules/${id}`, payload);
+  return data;
+}

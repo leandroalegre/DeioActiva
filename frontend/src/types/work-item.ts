@@ -50,7 +50,10 @@ export interface ModuleTreeNode {
   id: string;
   name: string;
   slug: string;
+  description?: string | null;
   parentId: string | null;
+  order: number;
+  active: boolean;
   children: ModuleTreeNode[];
 }
 

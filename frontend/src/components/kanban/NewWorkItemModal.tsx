@@ -15,6 +15,8 @@ export function NewWorkItemModal({ onClose }: { onClose: () => void }) {
   const [type, setType] = useState<WorkItemType>('TASK');
   const [priority, setPriority] = useState<WorkItemPriority>('MEDIUM');
   const [description, setDescription] = useState('');
+  const [plannedStart, setPlannedStart] = useState('');
+  const [plannedEnd, setPlannedEnd] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const mutation = useMutation({
@@ -33,7 +35,19 @@ export function NewWorkItemModal({ onClose }: { onClose: () => void }) {
       setError('Elegí un módulo.');
       return;
     }
-    mutation.mutate({ title, moduleId, type, priority, description: description || undefined });
+    if (plannedStart && plannedEnd && plannedEnd < plannedStart) {
+      setError('La fecha de fin planificada no puede ser anterior a la de inicio.');
+      return;
+    }
+    mutation.mutate({
+      title,
+      moduleId,
+      type,
+      priority,
+      description: description || undefined,
+      plannedStart: plannedStart || undefined,
+      plannedEnd: plannedEnd || undefined,
+    });
   }
 
   return (
@@ -110,6 +124,34 @@ export function NewWorkItemModal({ onClose }: { onClose: () => void }) {
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">
+                Inicio planificado (opcional)
+              </label>
+              <input
+                type="date"
+                value={plannedStart}
+                onChange={(e) => setPlannedStart(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">
+                Fin planificado (opcional)
+              </label>
+              <input
+                type="date"
+                value={plannedEnd}
+                onChange={(e) => setPlannedEnd(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+              />
+            </div>
+          </div>
+          <p className="-mt-2 text-xs text-slate-400">
+            Cargá estas dos fechas para que la tarea aparezca en la vista Gantt.
+          </p>
 
           {error && <p className="text-sm text-red-600">{error}</p>}
 

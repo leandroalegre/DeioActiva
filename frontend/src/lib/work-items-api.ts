@@ -23,6 +23,8 @@ export interface CreateWorkItemPayload {
   title: string;
   description?: string;
   priority?: WorkItemPriority;
+  plannedStart?: string;
+  plannedEnd?: string;
 }
 
 export async function createWorkItem(payload: CreateWorkItemPayload): Promise<WorkItem> {
