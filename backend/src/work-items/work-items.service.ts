@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { HistoryAction } from '@prisma/client';
+import { HistoryAction, Prisma } from '@prisma/client';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { HistoryService } from '../history/history.service';
 import { CreateWorkItemDto } from './dto/create-work-item.dto';
@@ -78,7 +78,7 @@ export class WorkItemsService {
       workItemId: workItem.id,
       userId: createdById,
       action: HistoryAction.CREATED,
-      afterJson: workItem as unknown as Record<string, unknown>,
+      afterJson: workItem as unknown as Prisma.InputJsonValue,
     });
 
     return workItem;
@@ -99,8 +99,8 @@ export class WorkItemsService {
       workItemId: id,
       userId,
       action: statusChanged ? HistoryAction.STATUS_CHANGED : HistoryAction.UPDATED,
-      beforeJson: before as unknown as Record<string, unknown>,
-      afterJson: workItem as unknown as Record<string, unknown>,
+      beforeJson: before as unknown as Prisma.InputJsonValue,
+      afterJson: workItem as unknown as Prisma.InputJsonValue,
     });
 
     return workItem;
