@@ -11,7 +11,15 @@ const INCLUDE = {
   module: { select: { id: true, name: true, slug: true } },
   assignedTo: { select: { id: true, fullName: true, email: true } },
   createdBy: { select: { id: true, fullName: true, email: true } },
+  _count: { select: { comments: true } },
 };
+
+// Convierte un string "YYYY-MM-DD" (o ISO completo) que llega de un <input type="date">
+// a un Date real. Prisma/MySQL rechazan un DateTime armado a mano con el string "corto"
+// (era la causa del 500 "No se pudo crear la tarea"/"No se pudo guardar el hito").
+function toDateOrUndefined(value: string | undefined): Date | undefined {
+  return value ? new Date(value) : undefined;
+}
 
 @Injectable()
 export class WorkItemsService {
@@ -64,9 +72,9 @@ export class WorkItemsService {
         description: dto.description,
         priority: dto.priority,
         assignedToId: dto.assignedToId,
-        plannedStart: dto.plannedStart,
-        plannedEnd: dto.plannedEnd,
-        dueDate: dto.dueDate,
+        plannedStart: toDateOrUndefined(dto.plannedStart),
+        plannedEnd: toDateOrUndefined(dto.plannedEnd),
+        dueDate: toDateOrUndefined(dto.dueDate),
         progressPercentage: dto.progressPercentage ?? 0,
         versionTarget: dto.versionTarget,
         createdById,
@@ -87,9 +95,18 @@ export class WorkItemsService {
   async update(id: string, dto: UpdateWorkItemDto, userId: string) {
     const before = await this.findOne(id);
 
+    const { plannedStart, plannedEnd, dueDate, actualStart, actualEnd, ...rest } = dto;
+
     const workItem = await this.prisma.workItem.update({
       where: { id },
-      data: dto,
+      data: {
+        ...rest,
+        ...(plannedStart !== undefined ? { plannedStart: toDateOrUndefined(plannedStart) ?? null } : {}),
+        ...(plannedEnd !== undefined ? { plannedEnd: toDateOrUndefined(plannedEnd) ?? null } : {}),
+        ...(dueDate !== undefined ? { dueDate: toDateOrUndefined(dueDate) ?? null } : {}),
+        ...(actualStart !== undefined ? { actualStart: toDateOrUndefined(actualStart) ?? null } : {}),
+        ...(actualEnd !== undefined ? { actualEnd: toDateOrUndefined(actualEnd) ?? null } : {}),
+      },
       include: INCLUDE,
     });
 

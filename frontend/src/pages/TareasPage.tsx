@@ -5,6 +5,7 @@ import { WORK_ITEM_STATUSES } from '../types/work-item';
 import type { WorkItem, WorkItemStatus } from '../types/work-item';
 import { KanbanColumn } from '../components/kanban/KanbanColumn';
 import { NewWorkItemModal } from '../components/kanban/NewWorkItemModal';
+import { WorkItemDetailModal } from '../components/kanban/WorkItemDetailModal';
 
 // Tablero Kanban de Tareas (WorkItem). Reemplaza el placeholder de Fase 1: agregado a
 // pedido despues de la entrega inicial, reutilizando GET/PATCH /work-items ya existentes.
@@ -12,6 +13,7 @@ export function TareasPage() {
   const queryClient = useQueryClient();
   const [showNewModal, setShowNewModal] = useState(false);
   const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [selectedItem, setSelectedItem] = useState<WorkItem | null>(null);
 
   const { data: items, isLoading, isError } = useQuery({
     queryKey: ['work-items'],
@@ -33,6 +35,10 @@ export function TareasPage() {
     return map;
   }, [items]);
 
+  // Si el detalle abierto quedo desactualizado (por ej. despues de agregar un comentario o
+  // de refrescar la lista), lo sincronizamos con la version mas nueva del mismo item.
+  const selected = selectedItem ? (items?.find((i) => i.id === selectedItem.id) ?? selectedItem) : null;
+
   function handleDragStart(e: React.DragEvent, item: WorkItem) {
     setDraggedId(item.id);
     e.dataTransfer.effectAllowed = 'move';
@@ -52,7 +58,10 @@ export function TareasPage() {
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-slate-800">Tareas</h1>
-          <p className="text-sm text-slate-500">Arrastrá una tarjeta para cambiar su estado.</p>
+          <p className="text-sm text-slate-500">
+            Arrastrá una tarjeta para cambiar su estado. Hacé click para ver el detalle y dejar
+            comentarios.
+          </p>
         </div>
         <button
           onClick={() => setShowNewModal(true)}
@@ -79,12 +88,14 @@ export function TareasPage() {
               items={byStatus.get(s.value) ?? []}
               onDragStart={handleDragStart}
               onDrop={handleDrop}
+              onCardClick={setSelectedItem}
             />
           ))}
         </div>
       )}
 
       {showNewModal && <NewWorkItemModal onClose={() => setShowNewModal(false)} />}
+      {selected && <WorkItemDetailModal item={selected} onClose={() => setSelectedItem(null)} />}
     </div>
   );
 }

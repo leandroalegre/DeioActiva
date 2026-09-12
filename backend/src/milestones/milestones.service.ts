@@ -37,7 +37,10 @@ export class MilestonesService {
       data: {
         name: dto.name,
         description: dto.description,
-        dueDate: dto.dueDate,
+        // dto.dueDate llega como string "YYYY-MM-DD" (IsDateString) desde un <input type="date">.
+        // Prisma/MySQL necesitan un Date real (o un ISO-8601 con hora) para una columna DateTime;
+        // pasar el string "corto" tal cual rompe el insert con un 500 generico.
+        dueDate: new Date(dto.dueDate),
         status: dto.status,
         createdById,
       },
@@ -46,6 +49,13 @@ export class MilestonesService {
 
   async update(id: string, dto: UpdateMilestoneDto) {
     await this.findOne(id);
-    return this.prisma.milestone.update({ where: { id }, data: dto });
+    const { dueDate, ...rest } = dto;
+    return this.prisma.milestone.update({
+      where: { id },
+      data: {
+        ...rest,
+        ...(dueDate !== undefined ? { dueDate: new Date(dueDate) } : {}),
+      },
+    });
   }
 }

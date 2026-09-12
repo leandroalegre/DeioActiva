@@ -44,6 +44,7 @@ export interface WorkItem {
   versionTarget?: string | null;
   createdAt: string;
   updatedAt: string;
+  _count?: { comments: number };
 }
 
 export interface ModuleTreeNode {

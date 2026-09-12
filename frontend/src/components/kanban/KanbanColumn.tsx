@@ -8,12 +8,14 @@ export function KanbanColumn({
   items,
   onDragStart,
   onDrop,
+  onCardClick,
 }: {
   status: WorkItemStatus;
   label: string;
   items: WorkItem[];
   onDragStart: (e: React.DragEvent, item: WorkItem) => void;
   onDrop: (status: WorkItemStatus) => void;
+  onCardClick: (item: WorkItem) => void;
 }) {
   const [isOver, setIsOver] = useState(false);
 
@@ -40,7 +42,7 @@ export function KanbanColumn({
       </div>
       <div className="flex flex-1 flex-col gap-2 overflow-y-auto">
         {items.map((item) => (
-          <KanbanCard key={item.id} item={item} onDragStart={onDragStart} />
+          <KanbanCard key={item.id} item={item} onDragStart={onDragStart} onClick={onCardClick} />
         ))}
         {items.length === 0 && (
           <p className="px-1 text-xs text-slate-400">Sin tareas</p>
