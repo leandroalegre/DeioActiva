@@ -1,6 +1,7 @@
 import { FormEvent, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { createMilestone, updateMilestone } from '../../lib/milestones-api';
+import { createMilestone, deleteMilestone, updateMilestone } from '../../lib/milestones-api';
+import { getApiErrorMessage } from '../../lib/api-client';
 import { MILESTONE_STATUSES } from '../../types/milestone';
 import type { Milestone, MilestoneStatus } from '../../types/milestone';
 
@@ -19,6 +20,7 @@ export function MilestoneFormModal({
   const [dueDate, setDueDate] = useState(milestone?.dueDate?.slice(0, 10) ?? '');
   const [status, setStatus] = useState<MilestoneStatus>(milestone?.status ?? 'PENDING');
   const [error, setError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const mutation = useMutation({
     mutationFn: () => {
@@ -30,6 +32,15 @@ export function MilestoneFormModal({
       onClose();
     },
     onError: () => setError('No se pudo guardar el hito. Revisá los datos e intentá de nuevo.'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteMilestone(milestone!.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['milestones'] });
+      onClose();
+    },
+    onError: (err) => setError(getApiErrorMessage(err, 'No se pudo eliminar el hito. Intentá de nuevo.')),
   });
 
   function handleSubmit(e: FormEvent) {
@@ -99,21 +110,54 @@ export function MilestoneFormModal({
 
           {error && <p className="text-sm text-red-600">{error}</p>}
 
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={mutation.isPending}
-              className="rounded-lg bg-brand-500 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
-            >
-              {mutation.isPending ? 'Guardando...' : isEditing ? 'Guardar cambios' : 'Crear hito'}
-            </button>
+          <div className="flex items-center justify-between gap-2 pt-2">
+            <div>
+              {isEditing && !confirmDelete && (
+                <button
+                  type="button"
+                  onClick={() => setConfirmDelete(true)}
+                  className="rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+                >
+                  Eliminar hito
+                </button>
+              )}
+              {isEditing && confirmDelete && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-red-600">¿Eliminar? No se puede deshacer.</span>
+                  <button
+                    type="button"
+                    onClick={() => deleteMutation.mutate()}
+                    disabled={deleteMutation.isPending}
+                    className="rounded-lg bg-red-600 px-2 py-1 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+                  >
+                    {deleteMutation.isPending ? 'Eliminando...' : 'Sí, eliminar'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete(false)}
+                    className="rounded-lg px-2 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100"
+                  >
+                    No
+                  </button>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={mutation.isPending}
+                className="rounded-lg bg-brand-500 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
+              >
+                {mutation.isPending ? 'Guardando...' : isEditing ? 'Guardar cambios' : 'Crear hito'}
+              </button>
+            </div>
           </div>
         </form>
       </div>

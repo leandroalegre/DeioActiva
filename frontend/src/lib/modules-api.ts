@@ -39,3 +39,7 @@ export async function updateModule(
   const { data } = await apiClient.patch<ModuleTreeNode>(`/modules/${id}`, payload);
   return data;
 }
+
+export async function deleteModule(id: string): Promise<void> {
+  await apiClient.delete(`/modules/${id}`);
+}

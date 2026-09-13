@@ -24,6 +24,17 @@ export const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:3001/api',
 });
 
+// Extrae el mensaje que manda el backend (ej. un ConflictException de "no se puede eliminar
+// porque tiene tareas asociadas") para mostrarlo tal cual en vez de un error generico.
+export function getApiErrorMessage(err: unknown, fallback: string): string {
+  if (axios.isAxiosError(err)) {
+    const message = err.response?.data?.message;
+    if (typeof message === 'string') return message;
+    if (Array.isArray(message) && message.length > 0) return message.join(' ');
+  }
+  return fallback;
+}
+
 apiClient.interceptors.request.use((config) => {
   const token = tokenStorage.getAccessToken();
   if (token) {

@@ -47,3 +47,7 @@ export async function updateWorkItemStatus(id: string, status: WorkItemStatus): 
   const { data } = await apiClient.patch<WorkItem>(`/work-items/${id}`, { status });
   return data;
 }
+
+export async function deleteWorkItem(id: string): Promise<void> {
+  await apiClient.delete(`/work-items/${id}`);
+}

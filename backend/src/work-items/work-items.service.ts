@@ -124,4 +124,12 @@ export class WorkItemsService {
 
     return workItem;
   }
+
+  // Borrado definitivo (a pedido: antes la unica forma de "sacar" una tarea era moverla a
+  // DISCARDED, que la deja visible en el Kanban para siempre). Los comentarios y el historial
+  // de la tarea tienen onDelete: Cascade en el schema, asi que se limpian solos.
+  async remove(id: string) {
+    await this.findOne(id);
+    await this.prisma.workItem.delete({ where: { id } });
+  }
 }

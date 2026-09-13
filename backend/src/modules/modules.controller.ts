@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ModulesService } from './modules.service';
 import { CreateModuleDto } from './dto/create-module.dto';
@@ -34,5 +34,12 @@ export class ModulesController {
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateModuleDto) {
     return this.modulesService.update(id, dto);
+  }
+
+  @Roles(ROLE_CODES.ADMIN)
+  @Delete(':id')
+  @HttpCode(204)
+  remove(@Param('id') id: string) {
+    return this.modulesService.remove(id);
   }
 }

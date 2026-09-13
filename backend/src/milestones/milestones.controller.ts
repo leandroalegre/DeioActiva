@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { MilestonesService } from './milestones.service';
 import { CreateMilestoneDto } from './dto/create-milestone.dto';
@@ -35,5 +35,12 @@ export class MilestonesController {
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateMilestoneDto) {
     return this.milestonesService.update(id, dto);
+  }
+
+  @Roles(ROLE_CODES.ADMIN)
+  @Delete(':id')
+  @HttpCode(204)
+  remove(@Param('id') id: string) {
+    return this.milestonesService.remove(id);
   }
 }

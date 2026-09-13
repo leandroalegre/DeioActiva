@@ -61,4 +61,27 @@ export class ModulesService {
     await this.findOne(id);
     return this.prisma.module.update({ where: { id }, data: dto });
   }
+
+  // No se permite borrar un modulo que todavia tiene submodulos o tareas colgando: se pide
+  // primero reasignarlos/eliminarlos, para no perder trazabilidad de tareas por un borrado
+  // en cascada silencioso.
+  async remove(id: string) {
+    await this.findOne(id);
+
+    const childCount = await this.prisma.module.count({ where: { parentId: id } });
+    if (childCount > 0) {
+      throw new ConflictException(
+        'No se puede eliminar: el modulo tiene submodulos. Eliminalos o movelos primero.',
+      );
+    }
+
+    const workItemCount = await this.prisma.workItem.count({ where: { moduleId: id } });
+    if (workItemCount > 0) {
+      throw new ConflictException(
+        'No se puede eliminar: el modulo tiene tareas asociadas. Movelas a otro modulo o eliminalas primero.',
+      );
+    }
+
+    await this.prisma.module.delete({ where: { id } });
+  }
 }

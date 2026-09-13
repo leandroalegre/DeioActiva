@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { MilestoneStatus } from '@prisma/client';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { CreateMilestoneDto } from './dto/create-milestone.dto';
@@ -72,5 +72,20 @@ export class MilestonesService {
         ...(dueDate !== undefined ? { dueDate: new Date(dueDate) } : {}),
       },
     });
+  }
+
+  // Igual que en Modulos: si el hito todavia tiene tareas asociadas, se pide desvincularlas
+  // primero (editar la tarea y sacarle el hito) en vez de borrarlas de un tiron.
+  async remove(id: string) {
+    await this.findOne(id);
+
+    const workItemCount = await this.prisma.workItem.count({ where: { milestoneId: id } });
+    if (workItemCount > 0) {
+      throw new ConflictException(
+        'No se puede eliminar: el hito tiene tareas asociadas. Desvinculalas primero (editá la tarea y sacale el hito).',
+      );
+    }
+
+    await this.prisma.milestone.delete({ where: { id } });
   }
 }

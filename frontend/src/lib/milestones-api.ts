@@ -28,3 +28,7 @@ export async function updateMilestone(
   const { data } = await apiClient.patch<Milestone>(`/milestones/${id}`, payload);
   return data;
 }
+
+export async function deleteMilestone(id: string): Promise<void> {
+  await apiClient.delete(`/milestones/${id}`);
+}
