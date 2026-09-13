@@ -23,6 +23,7 @@ export function KanbanCard({
   const type = WORK_ITEM_TYPES.find((t) => t.value === item.type);
   const commentCount = item._count?.comments ?? 0;
   const overdue = isOverdue(item);
+  const noGanttDates = (item.status !== 'COMPLETED' && item.status !== 'DISCARDED') && (!item.plannedStart || !item.plannedEnd);
 
   return (
     <div
@@ -43,6 +44,14 @@ export function KanbanCard({
               🚩 Vencida
             </span>
           )}
+            {noGanttDates && (
+              <span
+                className="rounded border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-700"
+                title="Sin fecha de inicio/fin planificado: no aparece en el Gantt"
+              >
+                Sin fecha
+              </span>
+            )}
           {priority && (
             <span className={`rounded border px-1.5 py-0.5 text-[11px] font-medium ${priority.color}`}>
               {priority.label}

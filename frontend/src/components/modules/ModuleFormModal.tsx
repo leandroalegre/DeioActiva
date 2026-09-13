@@ -1,8 +1,10 @@
 import { FormEvent, useState } from 'react';
+import axios from 'axios';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createModule, deleteModule, fetchModuleTree, flattenModules, updateModule } from '../../lib/modules-api';
+import { deleteWorkItem, fetchWorkItems, updateWorkItem } from '../../lib/work-items-api';
 import { getApiErrorMessage } from '../../lib/api-client';
-import type { ModuleTreeNode } from '../../types/work-item';
+import type { ModuleTreeNode, WorkItem } from '../../types/work-item';
 
 // Modal unico para crear o editar un modulo. Si se pasa `module`, edita; si no, crea.
 // `defaultParentId` se usa cuando el usuario aprieta "+ Submódulo" sobre un nodo del árbol.
@@ -30,6 +32,9 @@ export function ModuleFormModal({
   const [active, setActive] = useState(module?.active ?? true);
   const [error, setError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [blockedTasks, setBlockedTasks] = useState<WorkItem[] | null>(null);
+  const [loadingBlockedTasks, setLoadingBlockedTasks] = useState(false);
+  const [reassignTarget, setReassignTarget] = useState<Record<string, string>>({});
 
   function slugify(value: string) {
     return value
@@ -71,7 +76,40 @@ export function ModuleFormModal({
       queryClient.invalidateQueries({ queryKey: ['modules'] });
       onClose();
     },
-    onError: (err) => setError(getApiErrorMessage(err, 'No se pudo eliminar el módulo. Intentá de nuevo.')),
+    onError: async (err) => {
+      setError(getApiErrorMessage(err, 'No se pudo eliminar el módulo. Intentá de nuevo.'));
+      if (axios.isAxiosError(err) && err.response?.status === 409 && module) {
+        setLoadingBlockedTasks(true);
+        try {
+          const items = await fetchWorkItems();
+          setBlockedTasks(items.filter((wi) => wi.moduleId === module.id));
+        } catch {
+          setBlockedTasks(null);
+        } finally {
+          setLoadingBlockedTasks(false);
+        }
+      } else {
+        setBlockedTasks(null);
+      }
+    },
+  });
+
+  const reassignTaskMutation = useMutation({
+    mutationFn: ({ id, moduleId }: { id: string; moduleId: string }) => updateWorkItem(id, { moduleId }),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['work-items'] });
+      setBlockedTasks((prev) => (prev ? prev.filter((t) => t.id !== variables.id) : prev));
+    },
+    onError: (err) => setError(getApiErrorMessage(err, 'No se pudo mover la tarea. Intentá de nuevo.')),
+  });
+
+  const deleteTaskMutation = useMutation({
+    mutationFn: (id: string) => deleteWorkItem(id),
+    onSuccess: (_data, id) => {
+      queryClient.invalidateQueries({ queryKey: ['work-items'] });
+      setBlockedTasks((prev) => (prev ? prev.filter((t) => t.id !== id) : prev));
+    },
+    onError: (err) => setError(getApiErrorMessage(err, 'No se pudo eliminar la tarea. Intentá de nuevo.')),
   });
 
   function handleSubmit(e: FormEvent) {
@@ -155,6 +193,57 @@ export function ModuleFormModal({
 
           {error && <p className="text-sm text-red-600">{error}</p>}
 
+          {blockedTasks && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+              <p className="mb-2 text-xs font-semibold text-amber-800">
+                {loadingBlockedTasks
+                  ? 'Buscando tareas asociadas...'
+                  : blockedTasks.length > 0
+                  ? `Tareas asociadas (${blockedTasks.length}): movelas a otro módulo o eliminalas para poder borrar este módulo.`
+                  : 'Ya no tiene tareas asociadas. Podés intentar eliminar el módulo de nuevo.'}
+              </p>
+              <ul className="space-y-2">
+                {blockedTasks.map((task) => (
+                  <li key={task.id} className="flex flex-wrap items-center gap-2 rounded-md bg-white p-2 text-xs">
+                    <span className="flex-1 font-medium text-slate-700">{task.title}</span>
+                    <select
+                      value={reassignTarget[task.id] ?? moduleOptions[0]?.id ?? ''}
+                      onChange={(e) => setReassignTarget((prev) => ({ ...prev, [task.id]: e.target.value }))}
+                      className="rounded border border-slate-300 px-2 py-1 text-xs"
+                    >
+                      {moduleOptions.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.label}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        reassignTaskMutation.mutate({
+                          id: task.id,
+                          moduleId: reassignTarget[task.id] ?? moduleOptions[0]?.id ?? '',
+                        })
+                      }
+                      disabled={reassignTaskMutation.isPending || !moduleOptions.length}
+                      className="rounded bg-slate-600 px-2 py-1 text-xs font-semibold text-white hover:bg-slate-700 disabled:opacity-60"
+                    >
+                      Mover
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deleteTaskMutation.mutate(task.id)}
+                      disabled={deleteTaskMutation.isPending}
+                      className="rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+                    >
+                      Eliminar
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <div className="flex items-center justify-between gap-2 pt-2">
             <div>
               {isEditing && !confirmDelete && (
@@ -179,7 +268,11 @@ export function ModuleFormModal({
                   </button>
                   <button
                     type="button"
-                    onClick={() => setConfirmDelete(false)}
+                    onClick={() => {
+                      setConfirmDelete(false);
+                      setBlockedTasks(null);
+                      setError(null);
+                    }}
                     className="rounded-lg px-2 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100"
                   >
                     No
