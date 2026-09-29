@@ -136,6 +136,10 @@ export function ReunionDetallePage() {
   const points = meeting.points;
   const resolved = points.filter((p) => p.status === 'RESOLVED').length;
   const open = points.filter((p) => OPEN_POINT_STATUSES.includes(p.status)).length;
+  // Abiertos que todavia no se llevaron a otra reunion (para el aviso al finalizar).
+  const openNotCarried = points.filter(
+    (p) => OPEN_POINT_STATUSES.includes(p.status) && !p.carriedTo,
+  ).length;
   const attendedCount = meeting.participants.filter((p) => p.attended === true).length;
   const isClosed = meeting.status === 'FINISHED' || meeting.status === 'CANCELLED';
   const actionableWithoutTask = points.filter(needsWorkItem).length;
@@ -521,9 +525,10 @@ export function ReunionDetallePage() {
                 </button>
               </div>
             )}
-            {meeting.status !== 'FINISHED' && open > 0 && (
+            {meeting.status !== 'FINISHED' && openNotCarried > 0 && (
               <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
-                Quedan {open} punto{open === 1 ? '' : 's'} abierto{open === 1 ? '' : 's'}. Podés
+                Quedan {openNotCarried} punto{openNotCarried === 1 ? '' : 's'} abierto
+                {openNotCarried === 1 ? '' : 's'} sin trasladar. Podés
                 traerlos a la próxima reunión con “Traer pendientes”.
               </p>
             )}

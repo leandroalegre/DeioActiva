@@ -177,3 +177,22 @@ export const POINT_TYPE_TO_WORK_ITEM_TYPE: Record<MeetingPointType, WorkItemType
 export function needsWorkItem(p: { type: MeetingPointType; status: MeetingPointStatus; workItemId?: string | null }) {
   return !p.workItemId && ACTIONABLE_POINT_TYPES.includes(p.type) && OPEN_POINT_STATUSES.includes(p.status);
 }
+
+// Ordena los modulos como arbol (cada submodulo debajo de su padre) para los selectores.
+// La API los devuelve planos, ordenados por "order"/nombre, y los hijos quedaban mezclados.
+export function modulesAsTree(modules: MeetingOptions['modules']) {
+  const byParent = new Map<string | null, MeetingOptions['modules']>();
+  for (const m of modules) {
+    const key = m.parentId && modules.some((x) => x.id === m.parentId) ? m.parentId : null;
+    byParent.set(key, [...(byParent.get(key) ?? []), m]);
+  }
+  const out: { id: string; label: string }[] = [];
+  const walk = (parentId: string | null, depth: number) => {
+    for (const m of byParent.get(parentId) ?? []) {
+      out.push({ id: m.id, label: `${'— '.repeat(depth)}${m.name}` });
+      walk(m.id, depth + 1);
+    }
+  };
+  walk(null, 0);
+  return out;
+}
