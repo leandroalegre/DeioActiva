@@ -342,12 +342,31 @@ export class MeetingsService {
     return this.findOne(id);
   }
 
+  // Las tablas del hosting son MyISAM (sin foreign keys), asi que los onDelete del schema no
+  // se aplican: los dependientes se borran/desvinculan a mano, en orden.
   async remove(id: string) {
     await this.ensureExists(id);
-    // Los puntos que otras reuniones trajeron desde esta quedan sin origen (SetNull), y las
-    // reuniones siguientes de la serie quedan sin "anterior": no se borra nada en cascada
-    // fuera de esta reunion (sus participantes, puntos y notas si se borran).
-    await this.prisma.meeting.delete({ where: { id } });
+    const points = await this.prisma.meetingPoint.findMany({
+      where: { meetingId: id },
+      select: { id: true },
+    });
+    const pointIds = points.map((p) => p.id);
+    await this.prisma.$transaction([
+      // Puntos de otras reuniones traidos desde esta: quedan sin origen.
+      this.prisma.meetingPoint.updateMany({
+        where: { carriedFromId: { in: pointIds } },
+        data: { carriedFromId: null },
+      }),
+      this.prisma.meetingPointNote.deleteMany({ where: { pointId: { in: pointIds } } }),
+      this.prisma.meetingPoint.deleteMany({ where: { meetingId: id } }),
+      this.prisma.meetingParticipant.deleteMany({ where: { meetingId: id } }),
+      // Reuniones siguientes de la serie: quedan sin "anterior".
+      this.prisma.meeting.updateMany({
+        where: { previousMeetingId: id },
+        data: { previousMeetingId: null },
+      }),
+      this.prisma.meeting.delete({ where: { id } }),
+    ]);
   }
 
   // Trae a "targetId" una copia de cada punto abierto de "fromId" que todavia no se haya
@@ -449,7 +468,14 @@ export class MeetingsService {
 
   async removePoint(pointId: string) {
     await this.ensurePoint(pointId);
-    await this.prisma.meetingPoint.delete({ where: { id: pointId } });
+    await this.prisma.$transaction([
+      this.prisma.meetingPoint.updateMany({
+        where: { carriedFromId: pointId },
+        data: { carriedFromId: null },
+      }),
+      this.prisma.meetingPointNote.deleteMany({ where: { pointId } }),
+      this.prisma.meetingPoint.delete({ where: { id: pointId } }),
+    ]);
   }
 
   async reorderPoints(meetingId: string, pointIds: string[]) {

@@ -141,6 +141,16 @@ export class WorkItemsService {
   // de la tarea tienen onDelete: Cascade en el schema, asi que se limpian solos.
   async remove(id: string) {
     await this.findOne(id);
-    await this.prisma.workItem.delete({ where: { id } });
+    // Tablas MyISAM (sin foreign keys): los onDelete del schema no se aplican, asi que se
+    // limpian a mano los comentarios/historial y se desvinculan los puntos de reunion.
+    await this.prisma.$transaction([
+      this.prisma.meetingPoint.updateMany({
+        where: { workItemId: id },
+        data: { workItemId: null },
+      }),
+      this.prisma.workItemComment.deleteMany({ where: { workItemId: id } }),
+      this.prisma.workItemHistory.deleteMany({ where: { workItemId: id } }),
+      this.prisma.workItem.delete({ where: { id } }),
+    ]);
   }
 }

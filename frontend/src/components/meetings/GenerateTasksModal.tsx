@@ -7,6 +7,7 @@ import {
   POINT_TYPES,
   POINT_TYPE_TO_WORK_ITEM_TYPE,
   metaOf,
+  modulesAsTree,
   needsWorkItem,
 } from '../../types/meeting';
 import type { Meeting, MeetingOptions } from '../../types/meeting';
@@ -65,10 +66,12 @@ export function GenerateTasksModal({
   const missingModule = selectedIds.filter((id) => !rows[id].moduleId).length;
 
   function patchRow(id: string, patch: Partial<Row>) {
+    setError(null);
     setRows((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } }));
   }
 
   function applyModuleToSelected(moduleId: string) {
+    setError(null);
     setDefaultModule(moduleId);
     setRows((prev) => {
       const next = { ...prev };
@@ -140,10 +143,9 @@ export function GenerateTasksModal({
                 className="min-w-[220px] rounded-lg border border-slate-300 px-2 py-1.5 text-sm"
               >
                 <option value="">Elegir...</option>
-                {(options?.modules ?? []).map((m) => (
+                {modulesAsTree(options?.modules ?? []).map((m) => (
                   <option key={m.id} value={m.id}>
-                    {m.parentId ? '— ' : ''}
-                    {m.name}
+                    {m.label}
                   </option>
                 ))}
               </select>
@@ -208,12 +210,11 @@ export function GenerateTasksModal({
                             className={`${SELECT} ${row.selected && !row.moduleId ? 'border-amber-400' : ''}`}
                           >
                             <option value="">Módulo...</option>
-                            {(options?.modules ?? []).map((m) => (
-                              <option key={m.id} value={m.id}>
-                                {m.parentId ? '— ' : ''}
-                                {m.name}
-                              </option>
-                            ))}
+                            {modulesAsTree(options?.modules ?? []).map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.label}
+                  </option>
+                ))}
                           </select>
                         </td>
                         <td className="py-2 pr-2 align-top">

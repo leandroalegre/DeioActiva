@@ -14,6 +14,7 @@ import {
   formatDay,
   isPointOverdue,
   metaOf,
+  modulesAsTree,
 } from '../../types/meeting';
 import type { MeetingOptions, MeetingPoint, MeetingPointStatus } from '../../types/meeting';
 import { WORK_ITEM_PRIORITIES, WORK_ITEM_TYPES, WORK_ITEM_STATUSES } from '../../types/work-item';
@@ -325,10 +326,9 @@ export function MeetingPointCard({
                 className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm sm:col-span-2"
               >
                 <option value="">Módulo...</option>
-                {(options?.modules ?? []).map((m) => (
+                {modulesAsTree(options?.modules ?? []).map((m) => (
                   <option key={m.id} value={m.id}>
-                    {m.parentId ? '— ' : ''}
-                    {m.name}
+                    {m.label}
                   </option>
                 ))}
               </select>
