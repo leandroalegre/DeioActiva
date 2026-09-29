@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { HistoryAction, Prisma, WorkItemPriority } from '@prisma/client';
+import { HistoryAction, Prisma, WorkItemArea, WorkItemPriority } from '@prisma/client';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { HistoryService } from '../history/history.service';
 import { CreateWorkItemDto } from './dto/create-work-item.dto';
@@ -69,6 +69,7 @@ export class WorkItemsService {
       data: {
         moduleId: dto.moduleId,
         type: dto.type,
+        area: dto.area ?? WorkItemArea.FULLSTACK,
         title: dto.title,
         description: dto.description,
         priority: dto.priority ?? WorkItemPriority.MEDIUM,
@@ -113,6 +114,7 @@ export class WorkItemsService {
     });
 
     const statusChanged = dto.status && dto.status !== before.status;
+    const areaChanged = dto.area && dto.area !== before.area;
 
     await this.history.record({
       workItemId: id,
@@ -121,6 +123,16 @@ export class WorkItemsService {
       beforeJson: before as unknown as Prisma.InputJsonValue,
       afterJson: workItem as unknown as Prisma.InputJsonValue,
     });
+
+    if (areaChanged) {
+      await this.history.record({
+        workItemId: id,
+        userId,
+        action: HistoryAction.AREA_CHANGED,
+        beforeJson: before as unknown as Prisma.InputJsonValue,
+        afterJson: workItem as unknown as Prisma.InputJsonValue,
+      });
+    }
 
     return workItem;
   }

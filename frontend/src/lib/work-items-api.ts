@@ -1,5 +1,5 @@
 import { apiClient } from './api-client';
-import type { WorkItem, WorkItemPriority, WorkItemStatus, WorkItemType } from '../types/work-item';
+import type { WorkItem, WorkItemArea, WorkItemPriority, WorkItemStatus, WorkItemType } from '../types/work-item';
 
 export interface PaginatedResult<T> {
   data: T[];
@@ -20,6 +20,7 @@ export async function fetchWorkItems(): Promise<WorkItem[]> {
 export interface CreateWorkItemPayload {
   moduleId: string;
   type: WorkItemType;
+  area?: WorkItemArea;
   title: string;
   description?: string;
   priority?: WorkItemPriority;

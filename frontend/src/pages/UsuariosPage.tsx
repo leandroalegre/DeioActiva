@@ -60,6 +60,7 @@ export function UsuariosPage() {
                 <th className="px-4 py-3 font-medium">Email</th>
                 <th className="px-4 py-3 font-medium">Rol</th>
                 <th className="px-4 py-3 font-medium">Estado</th>
+                <th className="px-4 py-3 font-medium">Ultimo acceso</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -84,6 +85,14 @@ export function UsuariosPage() {
                       </span>
                     )}
                   </td>
+                  <td className="px-4 py-3 text-slate-500">
+                    {u.lastLoginAt
+                      ? new Date(u.lastLoginAt).toLocaleString('es-AR', {
+                          dateStyle: 'short',
+                          timeStyle: 'short',
+                        })
+                      : 'Nunca'}
+                  </td>
                   <td className="px-4 py-3 text-right">
                     <button
                       onClick={() => setModalState({ mode: 'edit', user: u })}
@@ -96,7 +105,7 @@ export function UsuariosPage() {
               ))}
               {(users ?? []).length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-sm text-slate-400">
+                  <td colSpan={6} className="px-4 py-6 text-center text-sm text-slate-400">
                     Todavía no hay usuarios además del tuyo.
                   </td>
                 </tr>

@@ -4,8 +4,8 @@ import { createWorkItem, deleteWorkItem, updateWorkItem } from '../../lib/work-i
 import { fetchModuleTree, flattenModules } from '../../lib/modules-api';
 import { fetchMilestones } from '../../lib/milestones-api';
 import { getApiErrorMessage } from '../../lib/api-client';
-import { WORK_ITEM_PRIORITIES, WORK_ITEM_TYPES } from '../../types/work-item';
-import type { WorkItem, WorkItemPriority, WorkItemType } from '../../types/work-item';
+import { WORK_ITEM_AREAS, WORK_ITEM_PRIORITIES, WORK_ITEM_STATUSES, WORK_ITEM_TYPES } from '../../types/work-item';
+import type { WorkItem, WorkItemArea, WorkItemPriority, WorkItemStatus, WorkItemType } from '../../types/work-item';
 
 // Modal de creacion/edicion de una tarea (WorkItem). Antes solo existia NewWorkItemModal
 // (crear); se unifico con edicion a pedido del usuario ("no me deja editar una tarea"),
@@ -30,6 +30,8 @@ export function WorkItemFormModal({
   const [moduleId, setModuleId] = useState(workItem?.moduleId ?? '');
   const [type, setType] = useState<WorkItemType>(workItem?.type ?? 'TASK');
   const [priority, setPriority] = useState<WorkItemPriority>(workItem?.priority ?? 'MEDIUM');
+  const [area, setArea] = useState<WorkItemArea>(workItem?.area ?? 'FULLSTACK');
+  const [status, setStatus] = useState<WorkItemStatus>(workItem?.status ?? 'PENDING');
   const [description, setDescription] = useState(workItem?.description ?? '');
   const [plannedStart, setPlannedStart] = useState(workItem?.plannedStart?.slice(0, 10) ?? '');
   const [plannedEnd, setPlannedEnd] = useState(workItem?.plannedEnd?.slice(0, 10) ?? '');
@@ -44,12 +46,14 @@ export function WorkItemFormModal({
         title,
         moduleId,
         type,
+        area,
         priority,
         description: description || undefined,
         plannedStart: plannedStart || undefined,
         plannedEnd: plannedEnd || undefined,
         dueDate: dueDate || undefined,
         milestoneId: milestoneId || null,
+        ...(isEditing ? { status } : {}),
       };
       return isEditing ? updateWorkItem(workItem!.id, payload) : createWorkItem(payload);
     },

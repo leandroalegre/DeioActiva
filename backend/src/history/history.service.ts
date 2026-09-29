@@ -47,4 +47,38 @@ export class HistoryService {
 
     return { data, total, page, pageSize };
   }
+
+  async getUserActivitySummary() {
+    const users = await this.prisma.user.findMany({
+      where: { active: true },
+      select: { id: true, fullName: true, email: true },
+      orderBy: { fullName: 'asc' },
+    });
+
+    const [pendingCounts, movedCounts] = await Promise.all([
+      this.prisma.workItem.groupBy({
+        by: ['assignedToId'],
+        where: { assignedToId: { not: null }, status: { notIn: ['COMPLETED', 'DISCARDED'] } },
+        _count: { _all: true },
+      }),
+      this.prisma.workItemHistory.groupBy({
+        by: ['userId'],
+        where: { action: { in: ['STATUS_CHANGED', 'AREA_CHANGED'] } },
+        _count: { _all: true },
+      }),
+    ]);
+
+    const pendingMap = new Map(
+      pendingCounts.map((p) => [p.assignedToId as string, p._count._all]),
+    );
+    const movedMap = new Map(movedCounts.map((m) => [m.userId, m._count._all]));
+
+    return users.map((u) => ({
+      userId: u.id,
+      fullName: u.fullName,
+      email: u.email,
+      pendingTasks: pendingMap.get(u.id) ?? 0,
+      movedTasks: movedMap.get(u.id) ?? 0,
+    }));
+  }
 }

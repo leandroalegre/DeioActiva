@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { WorkItemPriority, WorkItemType } from '@prisma/client';
+import { WorkItemArea, WorkItemPriority, WorkItemType } from '@prisma/client';
 import {
   IsDateString,
   IsEnum,
@@ -19,6 +19,11 @@ export class CreateWorkItemDto {
   @ApiProperty({ enum: WorkItemType })
   @IsEnum(WorkItemType)
   type: WorkItemType;
+
+  @ApiPropertyOptional({ enum: WorkItemArea, default: WorkItemArea.FULLSTACK })
+  @IsOptional()
+  @IsEnum(WorkItemArea)
+  area?: WorkItemArea;
 
   @ApiProperty()
   @IsString()

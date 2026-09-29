@@ -71,6 +71,11 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales invalidas');
     }
 
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    });
+
     const tokens = await this.issueTokens(user.id, meta);
     return { ...tokens, user: toAuthenticatedUser(user) };
   }

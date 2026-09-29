@@ -20,4 +20,9 @@ export class HistoryController {
   findAll(@Query() query: HistoryQueryDto) {
     return this.historyService.findAll(query);
   }
+
+  @Get('user-activity')
+  getUserActivity() {
+    return this.historyService.getUserActivitySummary();
+  }
 }

@@ -28,38 +28,39 @@ model Role {
 }
 
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
+  id           String    @id @default(uuid())
+  email        String    @unique
   passwordHash String
   fullName     String
   roleId       String
-  role         Role     @relation(fields: [roleId], references: [id])
-  active       Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  role         Role      @relation(fields: [roleId], references: [id])
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  lastLoginAt  DateTime?
 
-  refreshTokens       RefreshToken[]
-  createdModules      Module[]           @relation("ModuleCreatedBy")
-  assignedWorkItems   WorkItem[]         @relation("WorkItemAssignee")
-  createdWorkItems    WorkItem[]         @relation("WorkItemCreatedBy")
-  comments            WorkItemComment[]
-  historyEntries      WorkItemHistory[]
-  createdMilestones   Milestone[]        @relation("MilestoneCreatedBy")
+  refreshTokens     RefreshToken[]
+  createdModules    Module[]          @relation("ModuleCreatedBy")
+  assignedWorkItems WorkItem[]        @relation("WorkItemAssignee")
+  createdWorkItems  WorkItem[]        @relation("WorkItemCreatedBy")
+  comments          WorkItemComment[]
+  historyEntries    WorkItemHistory[]
+  createdMilestones Milestone[]       @relation("MilestoneCreatedBy")
 
   @@map("users")
 }
 
 model RefreshToken {
-  id                String    @id @default(uuid())
+  id                String   @id @default(uuid())
   userId            String
-  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   tokenHash         String
   expiresAt         DateTime
-  revoked           Boolean   @default(false)
+  revoked           Boolean  @default(false)
   replacedByTokenId String?
   userAgent         String?
   ipAddress         String?
-  createdAt         DateTime  @default(now())
+  createdAt         DateTime @default(now())
 
   @@index([userId])
   @@map("refresh_tokens")
@@ -95,6 +96,13 @@ enum WorkItemType {
   ANALYSIS
 }
 
+enum WorkItemArea {
+  FRONTEND
+  BACKEND
+  FULLSTACK
+  OTHER
+}
+
 enum WorkItemStatus {
   PENDING
   ANALYSIS
@@ -118,6 +126,7 @@ model WorkItem {
   moduleId           String
   module             Module           @relation(fields: [moduleId], references: [id])
   type               WorkItemType
+  area               WorkItemArea     @default(FULLSTACK)
   title              String
   description        String?          @db.Text
   status             WorkItemStatus   @default(PENDING)
@@ -171,6 +180,7 @@ enum HistoryAction {
   CREATED
   UPDATED
   STATUS_CHANGED
+  AREA_CHANGED
   ASSIGNED
   BLOCKED
   UNBLOCKED
@@ -214,7 +224,7 @@ model Milestone {
 
   // Tareas (WorkItem) que se marcaron como parte de este hito, para poder mostrar en el
   // Roadmap cuantas de las tareas asociadas ya estan completadas.
-  workItems   WorkItem[]
+  workItems WorkItem[]
 
   @@map("milestones")
 }

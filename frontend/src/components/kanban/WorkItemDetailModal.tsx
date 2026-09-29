@@ -1,8 +1,9 @@
 import { FormEvent, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchComments, createComment, updateComment } from '../../lib/comments-api';
-import { WORK_ITEM_PRIORITIES, WORK_ITEM_STATUSES, WORK_ITEM_TYPES } from '../../types/work-item';
-import type { WorkItem } from '../../types/work-item';
+import { updateWorkItem } from '../../lib/work-items-api';
+import { WORK_ITEM_AREAS, WORK_ITEM_PRIORITIES, WORK_ITEM_STATUSES, WORK_ITEM_TYPES } from '../../types/work-item';
+import type { WorkItem, WorkItemArea } from '../../types/work-item';
 import type { WorkItemComment } from '../../types/comment';
 
 // Modal de detalle de una tarea: se abre al hacer click en una tarjeta del Kanban.
@@ -39,6 +40,7 @@ export function WorkItemDetailModal({
   const [text, setText] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [commentArea, setCommentArea] = useState<WorkItemArea>(item.area);
 
   const { data: comments, isLoading } = useQuery({
     queryKey: ['comments', item.id],
@@ -56,6 +58,14 @@ export function WorkItemDetailModal({
     onError: () => setError('No se pudo guardar el comentario. Intentá de nuevo.'),
   });
 
+  const areaMutation = useMutation({
+    mutationFn: (newArea: WorkItemArea) => updateWorkItem(item.id, { area: newArea }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['work-items'] });
+    },
+    onError: () => setError('No se pudo actualizar el área. Intentá de nuevo.'),
+  });
+
   const resolveMutation = useMutation({
     mutationFn: ({ id, resolved }: { id: string; resolved: boolean }) =>
       updateComment(id, { resolved }),
@@ -65,6 +75,9 @@ export function WorkItemDetailModal({
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    if (commentArea !== item.area) {
+      areaMutation.mutate(commentArea);
+    }
     if (!text.trim()) return;
     mutation.mutate();
   }
@@ -72,6 +85,7 @@ export function WorkItemDetailModal({
   const type = WORK_ITEM_TYPES.find((t) => t.value === item.type);
   const priority = WORK_ITEM_PRIORITIES.find((p) => p.value === item.priority);
   const status = WORK_ITEM_STATUSES.find((s) => s.value === item.status);
+  const area = WORK_ITEM_AREAS.find((a) => a.value === item.area);
 
   function formatDate(value?: string | null) {
     if (!value) return null;
@@ -101,6 +115,11 @@ export function WorkItemDetailModal({
           <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-600">
             {type?.label ?? item.type}
           </span>
+          {area && (
+            <span className={`rounded border px-1.5 py-0.5 text-[11px] font-medium ${area.color}`}>
+              {area.label}
+            </span>
+          )}
           {priority && (
             <span className={`rounded border px-1.5 py-0.5 text-[11px] font-medium ${priority.color}`}>
               {priority.label}
@@ -231,14 +250,30 @@ export function WorkItemDetailModal({
                 className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
               />
             </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-600">
+                Área
+              </label>
+              <select
+                value={commentArea}
+                onChange={(e) => setCommentArea(e.target.value as WorkItemArea)}
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+              >
+                {WORK_ITEM_AREAS.map((a) => (
+                  <option key={a.value} value={a.value}>
+                    {a.label}
+                  </option>
+                ))}
+              </select>
+            </div>
             {error && <p className="text-sm text-red-600">{error}</p>}
             <div className="flex justify-end">
               <button
                 type="submit"
-                disabled={mutation.isPending || !text.trim()}
+                disabled={mutation.isPending || areaMutation.isPending || (!text.trim() && commentArea === item.area)}
                 className="rounded-lg bg-brand-500 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
               >
-                {mutation.isPending ? 'Guardando...' : 'Agregar comentario'}
+                {mutation.isPending || areaMutation.isPending ? 'Guardando...' : 'Agregar comentario'}
               </button>
             </div>
           </form>

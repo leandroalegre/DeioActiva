@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchWorkItems } from '../lib/work-items-api';
+import { fetchUserActivitySummary } from '../lib/history-api';
 import type { WorkItemStatus } from '../types/work-item';
 
 // Fase 1 sin endpoint de metricas dedicado: se reusa el mismo fetch de tareas que ya usan
@@ -18,6 +19,15 @@ export function DashboardPage() {
   const { data: items, isLoading, isError } = useQuery({
     queryKey: ['work-items'],
     queryFn: fetchWorkItems,
+  });
+
+  const {
+    data: activity,
+    isLoading: isActivityLoading,
+    isError: isActivityError,
+  } = useQuery({
+    queryKey: ['user-activity'],
+    queryFn: fetchUserActivitySummary,
   });
 
   return (
@@ -49,6 +59,52 @@ export function DashboardPage() {
       {!isLoading && !isError && items && (
         <p className="mt-4 text-sm text-slate-400">{items.length} tareas en total.</p>
       )}
+
+      <div className="mt-8">
+        <h2 className="mb-3 text-lg font-semibold text-slate-800">Actividad por usuario</h2>
+
+        {isActivityError && (
+          <p className="mb-4 text-sm text-red-600">
+            No se pudo cargar la actividad de usuarios.
+          </p>
+        )}
+
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase text-slate-500">
+              <tr>
+                <th className="px-4 py-3 font-medium">Usuario</th>
+                <th className="px-4 py-3 font-medium">Tareas pendientes</th>
+                <th className="px-4 py-3 font-medium">Tareas movidas</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {isActivityLoading && (
+                <tr>
+                  <td colSpan={3} className="px-4 py-6 text-center text-sm text-slate-400">
+                    Cargando actividad...
+                  </td>
+                </tr>
+              )}
+              {!isActivityLoading &&
+                (activity ?? []).map((row) => (
+                  <tr key={row.userId} className="hover:bg-slate-50">
+                    <td className="px-4 py-3 font-medium text-slate-800">{row.fullName}</td>
+                    <td className="px-4 py-3 text-slate-600">{row.pendingTasks}</td>
+                    <td className="px-4 py-3 text-slate-600">{row.movedTasks}</td>
+                  </tr>
+                ))}
+              {!isActivityLoading && !isActivityError && (activity ?? []).length === 0 && (
+                <tr>
+                  <td colSpan={3} className="px-4 py-6 text-center text-sm text-slate-400">
+                    No hay actividad registrada todavia.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }

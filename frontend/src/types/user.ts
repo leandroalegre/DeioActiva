@@ -7,4 +7,5 @@ export interface AppUser {
   role: Role;
   active: boolean;
   createdAt: string;
+  lastLoginAt: string | null;
 }

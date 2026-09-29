@@ -12,6 +12,7 @@ const SAFE_SELECT = {
   active: true,
   createdAt: true,
   updatedAt: true,
+  lastLoginAt: true,
   role: { select: { id: true, code: true, name: true } },
 };
 

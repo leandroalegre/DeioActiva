@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchWorkItems, updateWorkItemStatus } from '../lib/work-items-api';
-import { WORK_ITEM_STATUSES } from '../types/work-item';
-import type { WorkItem, WorkItemStatus } from '../types/work-item';
+import { WORK_ITEM_AREAS, WORK_ITEM_STATUSES } from '../types/work-item';
+import type { WorkItem, WorkItemArea, WorkItemStatus } from '../types/work-item';
 import { KanbanColumn } from '../components/kanban/KanbanColumn';
 import { WorkItemFormModal } from '../components/kanban/WorkItemFormModal';
 import { WorkItemDetailModal } from '../components/kanban/WorkItemDetailModal';
@@ -28,14 +28,21 @@ export function TareasPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['work-items'] }),
   });
 
+  const [areaFilter, setAreaFilter] = useState<WorkItemArea | 'ALL'>('ALL');
+
+  const filteredItems = useMemo(
+    () => (areaFilter === 'ALL' ? items : items?.filter((i) => i.area === areaFilter)),
+    [items, areaFilter],
+  );
+
   const byStatus = useMemo(() => {
     const map = new Map<WorkItemStatus, WorkItem[]>();
     for (const s of WORK_ITEM_STATUSES) map.set(s.value, []);
-    for (const item of items ?? []) {
+    for (const item of filteredItems ?? []) {
       map.get(item.status)?.push(item);
     }
     return map;
-  }, [items]);
+  }, [filteredItems]);
 
   // Si el detalle abierto quedo desactualizado (por ej. despues de agregar un comentario o
   // de refrescar la lista), lo sincronizamos con la version mas nueva del mismo item.
@@ -71,6 +78,22 @@ export function TareasPage() {
         >
           + Nueva tarea
         </button>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <label className="text-sm font-medium text-slate-600">Area:</label>
+        <select
+          value={areaFilter}
+          onChange={(e) => setAreaFilter(e.target.value as WorkItemArea | 'ALL')}
+          className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+        >
+          <option value="ALL">Todas</option>
+          {WORK_ITEM_AREAS.map((a) => (
+            <option key={a.value} value={a.value}>
+              {a.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       {isLoading && <p className="text-sm text-slate-500">Cargando tareas...</p>}

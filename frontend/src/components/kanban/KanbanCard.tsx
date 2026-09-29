@@ -1,5 +1,5 @@
 import type { WorkItem } from '../../types/work-item';
-import { WORK_ITEM_PRIORITIES, WORK_ITEM_TYPES } from '../../types/work-item';
+import { WORK_ITEM_AREAS, WORK_ITEM_PRIORITIES, WORK_ITEM_TYPES } from '../../types/work-item';
 
 // Una tarea se considera vencida si tiene fecha limite, esa fecha ya paso, y todavia no
 // esta completada/descartada -- se usa para marcar la tarjeta con una bandera visual y que
@@ -21,6 +21,7 @@ export function KanbanCard({
 }) {
   const priority = WORK_ITEM_PRIORITIES.find((p) => p.value === item.priority);
   const type = WORK_ITEM_TYPES.find((t) => t.value === item.type);
+  const area = WORK_ITEM_AREAS.find((a) => a.value === item.area);
   const commentCount = item._count?.comments ?? 0;
   const overdue = isOverdue(item);
   const noGanttDates = (item.status !== 'COMPLETED' && item.status !== 'DISCARDED') && (!item.plannedStart || !item.plannedEnd);
@@ -39,6 +40,11 @@ export function KanbanCard({
           {type?.label ?? item.type}
         </span>
         <div className="flex items-center gap-1">
+          {area && (
+            <span className={`rounded border px-1.5 py-0.5 text-[11px] font-medium ${area.color}`}>
+              {area.label}
+            </span>
+          )}
           {overdue && (
             <span className="rounded border border-red-200 bg-red-50 px-1.5 py-0.5 text-[11px] font-medium text-red-600">
               🚩 Vencida

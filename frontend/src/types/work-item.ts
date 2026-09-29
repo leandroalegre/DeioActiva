@@ -11,6 +11,7 @@ export type WorkItemStatus =
   | 'DISCARDED';
 
 export type WorkItemPriority = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+export type WorkItemArea = 'FRONTEND' | 'BACKEND' | 'FULLSTACK' | 'OTHER';
 
 export interface WorkItemRef {
   id: string;
@@ -25,6 +26,7 @@ export interface WorkItem {
   moduleId: string;
   module: { id: string; name: string; slug: string };
   type: WorkItemType;
+  area: WorkItemArea;
   title: string;
   description?: string | null;
   status: WorkItemStatus;
@@ -78,6 +80,13 @@ export const WORK_ITEM_TYPES: { value: WorkItemType; label: string }[] = [
   { value: 'TASK', label: 'Tarea' },
   { value: 'TEST', label: 'Prueba' },
   { value: 'ANALYSIS', label: 'Análisis' },
+];
+
+export const WORK_ITEM_AREAS: { value: WorkItemArea; label: string; color: string }[] = [
+  { value: 'FRONTEND', label: 'Frontend', color: 'bg-purple-100 text-purple-700 border-purple-200' },
+  { value: 'BACKEND', label: 'Backend', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+  { value: 'FULLSTACK', label: 'Fullstack', color: 'bg-blue-100 text-blue-700 border-blue-200' },
+  { value: 'OTHER', label: 'Otro', color: 'bg-slate-100 text-slate-600 border-slate-200' },
 ];
 
 export const WORK_ITEM_PRIORITIES: { value: WorkItemPriority; label: string; color: string }[] = [
