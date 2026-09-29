@@ -2,12 +2,17 @@ import { NavLink } from 'react-router-dom';
 import { NAVIGATION } from '../../config/navigation';
 import { useAuth } from '../../app/auth/AuthContext';
 import { Icon } from './icons';
+import { isPathAllowedFor } from '../../config/roles';
 
 export function Sidebar() {
   const { user } = useAuth();
   const roleCode = user?.role.code;
 
-  const items = NAVIGATION.filter((item) => !item.roles || (roleCode && item.roles.includes(roleCode)));
+  const items = NAVIGATION.filter(
+    (item) =>
+      (!item.roles || (roleCode && item.roles.includes(roleCode))) &&
+      isPathAllowedFor(roleCode, item.path),
+  );
 
   return (
     <aside className="flex h-full w-60 flex-col border-r border-slate-200 bg-white">

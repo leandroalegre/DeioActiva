@@ -90,7 +90,9 @@ App disponible en `http://localhost:5173`.
 
 El seed (`backend/prisma/seed.ts`) crea:
 
-- Los 4 roles: `super_admin`, `admin`, `developer`, `tester`.
+- Los 5 roles: `super_admin`, `admin`, `developer`, `tester`, `reuniones`. Además, el
+  backend crea al arrancar cualquier rol de `ROLE_CODES` que falte en la base (sin tocar
+  los existentes), así un rol nuevo no depende de volver a correr el seed en producción.
 - El primer usuario, `super_admin`, con los datos de `SEED_SUPER_ADMIN_*`.
 - Los módulos iniciales: Alta / Perfil DEO, Legajos, Gestión de Comunicación (con los
   submódulos Trámites y Comunicación), Familia G.
@@ -116,6 +118,29 @@ Los guards son centralizados (`JwtAuthGuard` + `RolesGuard`, aplicados globalmen
 `app.module.ts`): un endpoint se protege agregando `@Roles('admin', 'developer')`, sin
 repetir verificaciones de rol en cada controller. `super_admin` siempre tiene acceso
 completo. Un endpoint público (login, refresh, health) se marca con `@Public()`.
+
+**Roles acotados** (`SCOPED_ROLE_CODES`, hoy solo `reuniones`): por defecto el
+`RolesGuard` les rechaza *cualquier* endpoint, aunque no tenga `@Roles(...)`; solo pasan en
+los marcados con `@ScopedRolesAllowed('reuniones')` (el controller de Reuniones y
+`GET /auth/me`). En el frontend, `config/roles.ts` (`SCOPED_ROLE_PATHS`) oculta el resto del
+menú y redirige cualquier otra ruta a `/reuniones`.
+
+## Reuniones
+
+Sección `/reuniones`, basada en el módulo Reuniones de Gestión Activa:
+
+- Reunión: título, área convocante, fecha, horario, lugar, frecuencia, estado (Programada /
+  En curso / Finalizada / Cancelada), participantes (usuarios del sistema o externos) con
+  registro de asistencia, y observaciones generales del acta.
+- Orden del día: puntos a tratar (Tema / Acción / Decisión / Seguimiento / Nota) con
+  estado, responsable, fecha de control, **resolución** e historial de avances. Un punto se
+  puede convertir en tarea del Kanban.
+- "Traer pendientes": copia los puntos abiertos de una reunión anterior a la actual,
+  enlazados entre sí (↩ viene de / ↪ trasladado a).
+- Tablero "Puntos pendientes" de todas las reuniones, filtrable por responsable, y acta
+  imprimible en `/reuniones/:id/acta`.
+- Permisos: `super_admin`, `admin` y `reuniones` gestionan; `developer`/`tester` pueden ver
+  y cargar avances de seguimiento.
 
 ## Estado de esta entrega y próximos pasos
 

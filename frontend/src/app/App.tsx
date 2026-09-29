@@ -9,6 +9,9 @@ import { ModulosPage } from '../pages/ModulosPage';
 import { UsuariosPage } from '../pages/UsuariosPage';
 import { RoadmapPage } from '../pages/RoadmapPage';
 import { GanttPage } from '../pages/GanttPage';
+import { ReunionesPage } from '../pages/ReunionesPage';
+import { ReunionDetallePage } from '../pages/ReunionDetallePage';
+import { ActaReunionPage } from '../pages/ActaReunionPage';
 
 export default function App() {
   return (
@@ -22,9 +25,13 @@ export default function App() {
           <Route path="/tareas" element={<TareasPage />} />
           <Route path="/roadmap" element={<RoadmapPage />} />
           <Route path="/gantt" element={<GanttPage />} />
+          <Route path="/reuniones" element={<ReunionesPage />} />
+          <Route path="/reuniones/:id" element={<ReunionDetallePage />} />
           <Route path="/usuarios" element={<UsuariosPage />} />
           <Route path="/configuracion" element={<PlaceholderPage title="Configuración" />} />
         </Route>
+        {/* El acta va fuera del layout (sin sidebar) para poder imprimirla / guardarla en PDF. */}
+        <Route path="/reuniones/:id/acta" element={<ActaReunionPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

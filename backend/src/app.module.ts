@@ -10,6 +10,7 @@ import { WorkItemsModule } from './work-items/work-items.module';
 import { CommentsModule } from './comments/comments.module';
 import { HistoryModule } from './history/history.module';
 import { MilestonesModule } from './milestones/milestones.module';
+import { MeetingsModule } from './meetings/meetings.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { AppController } from './app.controller';
@@ -26,6 +27,7 @@ import { AppController } from './app.controller';
     CommentsModule,
     HistoryModule,
     MilestonesModule,
+    MeetingsModule,
   ],
   controllers: [AppController],
   providers: [
