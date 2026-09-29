@@ -1,6 +1,8 @@
+import type { WorkItemType } from './work-item';
+
 export type MeetingStatus = 'SCHEDULED' | 'IN_PROGRESS' | 'FINISHED' | 'CANCELLED';
 export type MeetingFrequency = 'UNIQUE' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'ON_DEMAND';
-export type MeetingPointType = 'TOPIC' | 'ACTION' | 'DECISION' | 'FOLLOW_UP' | 'NOTE';
+export type MeetingPointType = 'TOPIC' | 'REQUIREMENT' | 'ACTION' | 'DECISION' | 'FOLLOW_UP' | 'NOTE';
 export type MeetingPointStatus = 'PENDING' | 'IN_PROGRESS' | 'RESOLVED' | 'POSTPONED' | 'CANCELLED';
 
 export interface UserRef {
@@ -44,7 +46,7 @@ export interface MeetingPoint {
   responsible?: UserRef | null;
   dueDate?: string | null;
   workItemId?: string | null;
-  workItem?: { id: string; title: string; status: string } | null;
+  workItem?: { id: string; title: string; status: string; progressPercentage?: number } | null;
   carriedFrom?: { id: string; meeting: MeetingRef } | null;
   carriedTo?: { id: string; meeting: MeetingRef } | null;
   notes: MeetingPointNote[];
@@ -108,6 +110,7 @@ export const MEETING_FREQUENCIES: { value: MeetingFrequency; label: string }[] =
 
 export const POINT_TYPES: Meta<MeetingPointType>[] = [
   { value: 'TOPIC', label: 'Tema', color: 'bg-slate-100 text-slate-600 border-slate-200' },
+  { value: 'REQUIREMENT', label: 'Requerimiento', color: 'bg-rose-50 text-rose-700 border-rose-200' },
   { value: 'ACTION', label: 'Acción', color: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
   { value: 'DECISION', label: 'Decisión', color: 'bg-purple-50 text-purple-700 border-purple-200' },
   { value: 'FOLLOW_UP', label: 'Seguimiento', color: 'bg-cyan-50 text-cyan-700 border-cyan-200' },
@@ -154,4 +157,23 @@ export function todayKey() {
 export function isPointOverdue(p: { status: MeetingPointStatus; dueDate?: string | null }) {
   if (!p.dueDate || !OPEN_POINT_STATUSES.includes(p.status)) return false;
   return p.dueDate.slice(0, 10) < todayKey();
+}
+
+// Puntos que por su tipo suelen generar una tarea (se pre-tildan en "Generar tareas").
+export const ACTIONABLE_POINT_TYPES: MeetingPointType[] = ['REQUIREMENT', 'ACTION', 'FOLLOW_UP'];
+
+// Tipo de tarea del Kanban propuesto segun el tipo de punto (espejo del backend,
+// meeting-point-sync.ts).
+export const POINT_TYPE_TO_WORK_ITEM_TYPE: Record<MeetingPointType, WorkItemType> = {
+  REQUIREMENT: 'REQUIREMENT',
+  ACTION: 'TASK',
+  FOLLOW_UP: 'ANALYSIS',
+  DECISION: 'TASK',
+  TOPIC: 'TASK',
+  NOTE: 'TASK',
+};
+
+// Punto que conviene convertir en tarea: accionable, sin tarea y todavia abierto.
+export function needsWorkItem(p: { type: MeetingPointType; status: MeetingPointStatus; workItemId?: string | null }) {
+  return !p.workItemId && ACTIONABLE_POINT_TYPES.includes(p.type) && OPEN_POINT_STATUSES.includes(p.status);
 }

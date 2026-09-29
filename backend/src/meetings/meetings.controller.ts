@@ -13,6 +13,7 @@ import {
   CreateMeetingPointDto,
   CreatePointNoteDto,
   CreateWorkItemFromPointDto,
+  GenerateWorkItemsDto,
   QueryPendingPointsDto,
   ReorderPointsDto,
   UpdateMeetingPointDto,
@@ -87,6 +88,17 @@ export class MeetingsController {
   @Post(':id/points')
   createPoint(@Param('id') id: string, @Body() dto: CreateMeetingPointDto) {
     return this.meetingsService.createPoint(id, dto);
+  }
+
+  // Genera en lote tareas del Kanban a partir de puntos de esta reunion.
+  @Roles(...MEETING_MANAGER_ROLES)
+  @Post(':id/work-items')
+  generateWorkItems(
+    @Param('id') id: string,
+    @Body() dto: GenerateWorkItemsDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.meetingsService.generateWorkItems(id, dto.items, user.id);
   }
 
   @Roles(...MEETING_MANAGER_ROLES)

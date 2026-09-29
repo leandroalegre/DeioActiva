@@ -12,11 +12,11 @@ import {
   MeetingStatus,
   Prisma,
   WorkItemPriority,
-  WorkItemType,
+  WorkItemStatus,
 } from '@prisma/client';
 import { PrismaService } from '../common/prisma/prisma.service';
-import { HistoryService } from '../history/history.service';
 import { PaginatedResult } from '../common/dto/pagination-query.dto';
+import { POINT_TYPE_TO_WORK_ITEM_TYPE } from './meeting-point-sync';
 import {
   CreateMeetingDto,
   FinishMeetingDto,
@@ -29,6 +29,7 @@ import {
   CreateMeetingPointDto,
   CreatePointNoteDto,
   CreateWorkItemFromPointDto,
+  GenerateWorkItemItemDto,
   QueryPendingPointsDto,
   UpdateMeetingPointDto,
 } from './dto/meeting-point.dto';
@@ -45,7 +46,7 @@ const OPEN_POINT_STATUSES: MeetingPointStatus[] = [
 
 const POINT_INCLUDE = {
   responsible: USER_SELECT,
-  workItem: { select: { id: true, title: true, status: true } },
+  workItem: { select: { id: true, title: true, status: true, progressPercentage: true } },
   carriedFrom: {
     select: { id: true, meeting: { select: { id: true, title: true, date: true } } },
   },
@@ -88,10 +89,7 @@ function startOfTodayUtc(): Date {
 
 @Injectable()
 export class MeetingsService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly history: HistoryService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   // ---------------------------------------------------------------- opciones de formularios
 
@@ -363,7 +361,17 @@ export class MeetingsService {
     await this.ensureExists(fromId);
 
     const openPoints = await this.prisma.meetingPoint.findMany({
-      where: { meetingId: fromId, status: { in: OPEN_POINT_STATUSES }, carriedTo: { is: null } },
+      where: {
+        meetingId: fromId,
+        status: { in: OPEN_POINT_STATUSES },
+        carriedTo: { is: null },
+        // Un punto cuya tarea ya se completo/descarto no se arrastra aunque el punto haya
+        // quedado abierto (ej. tareas cerradas antes de existir la sincronizacion).
+        OR: [
+          { workItemId: null },
+          { workItem: { status: { notIn: [WorkItemStatus.COMPLETED, WorkItemStatus.DISCARDED] } } },
+        ],
+      },
       orderBy: { order: 'asc' },
     });
 
@@ -485,7 +493,7 @@ export class MeetingsService {
       take: 300,
       include: {
         responsible: USER_SELECT,
-        workItem: { select: { id: true, title: true, status: true } },
+        workItem: { select: { id: true, title: true, status: true, progressPercentage: true } },
         meeting: { select: { id: true, title: true, date: true, area: true } },
         _count: { select: { notes: true } },
       },
@@ -495,51 +503,111 @@ export class MeetingsService {
   // Crea una tarea del Kanban a partir de un punto (ej. una accion acordada en la reunion)
   // y deja el punto enlazado a esa tarea.
   async createWorkItemFromPoint(pointId: string, dto: CreateWorkItemFromPointDto, userId: string) {
-    const point = await this.prisma.meetingPoint.findUnique({
+    await this.ensurePoint(pointId);
+    await this.createWorkItemsForPoints([{ ...dto, pointId }], userId);
+    return this.prisma.meetingPoint.findUniqueOrThrow({
       where: { id: pointId },
-      include: { meeting: { select: { title: true, date: true } } },
-    });
-    if (!point) throw new NotFoundException('Punto no encontrado');
-    if (point.workItemId) {
-      throw new ConflictException('Este punto ya tiene una tarea asociada');
-    }
-    const module = await this.prisma.module.findUnique({ where: { id: dto.moduleId } });
-    if (!module || !module.active) throw new BadRequestException('Módulo inválido');
-
-    const meetingDate = point.meeting.date.toISOString().slice(0, 10);
-    const description = [
-      point.description,
-      point.resolution ? `Resolución: ${point.resolution}` : null,
-      `Origen: reunión "${point.meeting.title}" (${meetingDate}).`,
-    ]
-      .filter(Boolean)
-      .join('\n\n');
-
-    const workItem = await this.prisma.workItem.create({
-      data: {
-        moduleId: dto.moduleId,
-        type: dto.type ?? WorkItemType.TASK,
-        priority: dto.priority ?? WorkItemPriority.MEDIUM,
-        title: point.title,
-        description,
-        assignedToId: point.responsibleId,
-        dueDate: point.dueDate,
-        createdById: userId,
-      },
-    });
-
-    await this.history.record({
-      workItemId: workItem.id,
-      userId,
-      action: HistoryAction.CREATED,
-      afterJson: { title: workItem.title, fromMeetingPointId: point.id },
-    });
-
-    return this.prisma.meetingPoint.update({
-      where: { id: pointId },
-      data: { workItemId: workItem.id },
       include: POINT_INCLUDE,
     });
+  }
+
+  // Generacion en lote: una tarea por punto elegido, todo en una transaccion (o se crean
+  // todas o ninguna). Los puntos deben ser de esta reunion y no tener tarea todavia.
+  async generateWorkItems(meetingId: string, items: GenerateWorkItemItemDto[], userId: string) {
+    await this.ensureExists(meetingId);
+    const pointIds = items.map((i) => i.pointId);
+    if (new Set(pointIds).size !== pointIds.length) {
+      throw new BadRequestException('Hay puntos repetidos en la lista');
+    }
+    const count = await this.prisma.meetingPoint.count({
+      where: { id: { in: pointIds }, meetingId },
+    });
+    if (count !== pointIds.length) {
+      throw new BadRequestException('Algún punto no pertenece a esta reunión');
+    }
+    const created = await this.createWorkItemsForPoints(items, userId);
+    return { created, meeting: await this.findOne(meetingId) };
+  }
+
+  private async createWorkItemsForPoints(items: GenerateWorkItemItemDto[], userId: string) {
+    const points = await this.prisma.meetingPoint.findMany({
+      where: { id: { in: items.map((i) => i.pointId) } },
+      include: { meeting: { select: { title: true, date: true } } },
+    });
+    const pointById = new Map(points.map((p) => [p.id, p]));
+
+    const moduleIds = [...new Set(items.map((i) => i.moduleId))];
+    const activeModules = await this.prisma.module.count({
+      where: { id: { in: moduleIds }, active: true },
+    });
+    if (activeModules !== moduleIds.length) {
+      throw new BadRequestException('Alguno de los módulos elegidos no existe o está inactivo');
+    }
+
+    const assigneeIds = [
+      ...new Set(items.map((i) => i.assignedToId).filter((v): v is string => Boolean(v))),
+    ];
+    if (assigneeIds.length) {
+      const found = await this.prisma.user.count({ where: { id: { in: assigneeIds } } });
+      if (found !== assigneeIds.length) throw new BadRequestException('Usuario asignado inválido');
+    }
+
+    for (const item of items) {
+      const point = pointById.get(item.pointId);
+      if (!point) throw new NotFoundException('Punto no encontrado');
+      if (point.workItemId) {
+        throw new ConflictException(`El punto "${point.title}" ya tiene una tarea asociada`);
+      }
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      for (const item of items) {
+        const point = pointById.get(item.pointId)!;
+        const meetingDate = point.meeting.date.toISOString().slice(0, 10);
+        const description = [
+          point.description,
+          point.resolution ? `Resolución: ${point.resolution}` : null,
+          `Origen: reunión "${point.meeting.title}" (${meetingDate}).`,
+        ]
+          .filter(Boolean)
+          .join('\n\n');
+
+        const workItem = await tx.workItem.create({
+          data: {
+            moduleId: item.moduleId,
+            type: item.type ?? POINT_TYPE_TO_WORK_ITEM_TYPE[point.type],
+            priority: item.priority ?? WorkItemPriority.MEDIUM,
+            title: point.title,
+            description,
+            assignedToId: item.assignedToId !== undefined ? item.assignedToId : point.responsibleId,
+            dueDate: point.dueDate,
+            createdById: userId,
+          },
+        });
+
+        await tx.workItemHistory.create({
+          data: {
+            workItemId: workItem.id,
+            userId,
+            action: HistoryAction.CREATED,
+            afterJson: { title: workItem.title, fromMeetingPointId: point.id },
+          },
+        });
+
+        await tx.meetingPoint.update({
+          where: { id: point.id },
+          data: {
+            workItemId: workItem.id,
+            // Un punto pendiente que ya tiene tarea pasa a "En curso".
+            ...(point.status === MeetingPointStatus.PENDING
+              ? { status: MeetingPointStatus.IN_PROGRESS }
+              : {}),
+          },
+        });
+      }
+    });
+
+    return items.length;
   }
 
   private async ensurePoint(pointId: string) {

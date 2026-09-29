@@ -5,8 +5,10 @@ import {
   WorkItemPriority,
   WorkItemType,
 } from '@prisma/client';
+import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
+  ArrayMinSize,
   IsArray,
   IsDateString,
   IsEnum,
@@ -14,6 +16,7 @@ import {
   IsString,
   IsUUID,
   MaxLength,
+  ValidateNested,
 } from 'class-validator';
 
 export class CreateMeetingPointDto {
@@ -91,4 +94,41 @@ export class QueryPendingPointsDto {
   @IsOptional()
   @IsUUID()
   responsibleId?: string;
+}
+
+export class GenerateWorkItemItemDto {
+  @ApiProperty()
+  @IsUUID()
+  pointId: string;
+
+  @ApiProperty()
+  @IsUUID()
+  moduleId: string;
+
+  // Si se omite, se propone segun el tipo de punto (ver POINT_TYPE_TO_WORK_ITEM_TYPE).
+  @ApiPropertyOptional({ enum: WorkItemType })
+  @IsOptional()
+  @IsEnum(WorkItemType)
+  type?: WorkItemType;
+
+  @ApiPropertyOptional({ enum: WorkItemPriority })
+  @IsOptional()
+  @IsEnum(WorkItemPriority)
+  priority?: WorkItemPriority;
+
+  // Si se omite, se asigna al responsable del punto. null = sin asignar.
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @IsUUID()
+  assignedToId?: string | null;
+}
+
+export class GenerateWorkItemsDto {
+  @ApiProperty({ type: [GenerateWorkItemItemDto] })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(100)
+  @ValidateNested({ each: true })
+  @Type(() => GenerateWorkItemItemDto)
+  items: GenerateWorkItemItemDto[];
 }

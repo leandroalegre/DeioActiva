@@ -167,23 +167,47 @@ export function MeetingPointCard({
                 ↪ Trasladado a “{point.carriedTo.meeting.title}” ({formatDay(point.carriedTo.meeting.date)})
               </Link>
             )}
-            {point.workItem && (
-              <span>
-                Tarea:{' '}
-                {canTrackTasks ? (
-                  <Link to="/tareas" className="text-brand-600 hover:underline">
-                    {point.workItem.title}
-                  </Link>
-                ) : (
-                  <span className="text-slate-700">{point.workItem.title}</span>
-                )}{' '}
-                (
-                {WORK_ITEM_STATUSES.find((s) => s.value === point.workItem!.status)?.label ??
-                  point.workItem.status}
-                )
-              </span>
-            )}
           </div>
+
+          {point.workItem && (
+            <div className="mt-2 rounded-lg border border-slate-100 px-3 py-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                <span className="text-slate-500">
+                  Tarea:{' '}
+                  {canTrackTasks ? (
+                    <Link to="/tareas" className="font-medium text-brand-600 hover:underline">
+                      {point.workItem.title}
+                    </Link>
+                  ) : (
+                    <span className="font-medium text-slate-700">{point.workItem.title}</span>
+                  )}
+                </span>
+                <span className="font-semibold text-slate-600">
+                  {WORK_ITEM_STATUSES.find((s) => s.value === point.workItem!.status)?.label ??
+                    point.workItem.status}
+                  {' · '}
+                  {point.workItem.status === 'COMPLETED' ? 100 : (point.workItem.progressPercentage ?? 0)}%
+                </span>
+              </div>
+              <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-slate-100">
+                <div
+                  className={`h-full rounded-full ${
+                    point.workItem.status === 'COMPLETED'
+                      ? 'bg-green-500'
+                      : point.workItem.status === 'BLOCKED'
+                        ? 'bg-red-500'
+                        : 'bg-brand-500'
+                  }`}
+                  style={{
+                    width: `${point.workItem.status === 'COMPLETED' ? 100 : (point.workItem.progressPercentage ?? 0)}%`,
+                  }}
+                />
+              </div>
+              <p className="mt-1 text-[10px] text-slate-400">
+                El estado del punto se actualiza solo cuando la tarea se completa o descarta.
+              </p>
+            </div>
+          )}
 
           {point.description && (
             <p className="mt-2 whitespace-pre-line text-sm text-slate-600">{point.description}</p>

@@ -133,8 +133,16 @@ Sección `/reuniones`, basada en el módulo Reuniones de Gestión Activa:
   En curso / Finalizada / Cancelada), participantes (usuarios del sistema o externos) con
   registro de asistencia, y observaciones generales del acta.
 - Orden del día: puntos a tratar (Tema / Acción / Decisión / Seguimiento / Nota) con
-  estado, responsable, fecha de control, **resolución** e historial de avances. Un punto se
-  puede convertir en tarea del Kanban.
+  estado, responsable, fecha de control, **resolución** e historial de avances.
+- **Tareas desde la reunión**: "Generar tareas" convierte en lote los puntos elegidos en
+  tareas del Kanban (`POST /meetings/:id/work-items`). Vienen pre-tildados los accionables
+  abiertos sin tarea (Requerimiento, Acción, Seguimiento) y el tipo de tarea se propone
+  según el tipo de punto (Requerimiento → Requerimiento, Acción → Tarea, Seguimiento →
+  Análisis). Al finalizar la reunión se avisa si quedan puntos accionables sin tarea.
+- **Sincronización tarea → punto** (`meetings/meeting-point-sync.ts`, llamado desde
+  `WorkItemsService.update`): tarea Completada → punto Resuelto, Descartada → Descartado,
+  en curso → punto En curso; cada cambio deja un avance automático en el punto. Los puntos
+  con tarea cerrada no se arrastran con "Traer pendientes".
 - "Traer pendientes": copia los puntos abiertos de una reunión anterior a la actual,
   enlazados entre sí (↩ viene de / ↪ trasladado a).
 - Tablero "Puntos pendientes" de todas las reuniones, filtrable por responsable, y acta

@@ -148,3 +148,19 @@ export async function fetchPendingPoints(responsibleId?: string): Promise<Pendin
   });
   return data;
 }
+
+export interface GenerateWorkItemInput {
+  pointId: string;
+  moduleId: string;
+  type?: string;
+  priority?: string;
+  assignedToId?: string | null;
+}
+
+export async function generateWorkItems(meetingId: string, items: GenerateWorkItemInput[]) {
+  const { data } = await apiClient.post<{ created: number; meeting: Meeting }>(
+    `/meetings/${meetingId}/work-items`,
+    { items },
+  );
+  return data;
+}

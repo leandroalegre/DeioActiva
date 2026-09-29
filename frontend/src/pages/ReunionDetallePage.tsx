@@ -18,12 +18,14 @@ import { MEETING_MANAGER_ROLES, isPathAllowedFor } from '../config/roles';
 import { MeetingFormModal } from '../components/meetings/MeetingFormModal';
 import { PointFormModal } from '../components/meetings/PointFormModal';
 import { MeetingPointCard } from '../components/meetings/MeetingPointCard';
+import { GenerateTasksModal } from '../components/meetings/GenerateTasksModal';
 import {
   MEETING_STATUSES,
   OPEN_POINT_STATUSES,
   formatDay,
   frequencyLabel,
   metaOf,
+  needsWorkItem,
 } from '../types/meeting';
 import type { MeetingPoint, MeetingStatus } from '../types/meeting';
 
@@ -47,6 +49,7 @@ export function ReunionDetallePage() {
     { mode: 'closed' } | { mode: 'create' } | { mode: 'edit'; point: MeetingPoint }
   >({ mode: 'closed' });
   const [finishOpen, setFinishOpen] = useState(false);
+  const [generateOpen, setGenerateOpen] = useState(false);
   const [minutesNotes, setMinutesNotes] = useState('');
   const [carryOpen, setCarryOpen] = useState(false);
   const [carryFrom, setCarryFrom] = useState('');
@@ -135,6 +138,7 @@ export function ReunionDetallePage() {
   const open = points.filter((p) => OPEN_POINT_STATUSES.includes(p.status)).length;
   const attendedCount = meeting.participants.filter((p) => p.attended === true).length;
   const isClosed = meeting.status === 'FINISHED' || meeting.status === 'CANCELLED';
+  const actionableWithoutTask = points.filter(needsWorkItem).length;
 
   function movePoint(pointId: string, direction: -1 | 1) {
     const ids = points.map((p) => p.id);
@@ -303,6 +307,13 @@ export function ReunionDetallePage() {
             {canManage && (
               <div className="flex gap-2">
                 <button
+                  onClick={() => setGenerateOpen(true)}
+                  className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-sm font-medium text-brand-700 hover:bg-brand-100"
+                  title="Crear tareas del Kanban a partir de los puntos"
+                >
+                  Generar tareas{actionableWithoutTask > 0 ? ` (${actionableWithoutTask})` : ''}
+                </button>
+                <button
                   onClick={() => setCarryOpen((v) => !v)}
                   className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
                 >
@@ -464,6 +475,20 @@ export function ReunionDetallePage() {
         </div>
       </div>
 
+      {generateOpen && (
+        <GenerateTasksModal
+          meeting={meeting}
+          options={options}
+          onClose={() => setGenerateOpen(false)}
+          onDone={(created) => {
+            setGenerateOpen(false);
+            setMessage({
+              kind: 'ok',
+              text: `Se crearon ${created} tarea${created === 1 ? '' : 's'} en el Kanban.`,
+            });
+          }}
+        />
+      )}
       {editing && <MeetingFormModal meeting={meeting} onClose={() => setEditing(false)} />}
       {pointModal.mode !== 'closed' && (
         <PointFormModal
@@ -479,6 +504,23 @@ export function ReunionDetallePage() {
             <h2 className="mb-1 text-lg font-semibold text-slate-800">
               {meeting.status === 'FINISHED' ? 'Observaciones del acta' : 'Finalizar reunión'}
             </h2>
+            {meeting.status !== 'FINISHED' && actionableWithoutTask > 0 && (
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-brand-50 px-3 py-2 text-xs text-brand-700">
+                <span>
+                  Hay {actionableWithoutTask} punto{actionableWithoutTask === 1 ? '' : 's'} accionable
+                  {actionableWithoutTask === 1 ? '' : 's'} sin tarea. ¿Generarlas ahora?
+                </span>
+                <button
+                  onClick={() => {
+                    setFinishOpen(false);
+                    setGenerateOpen(true);
+                  }}
+                  className="rounded-lg bg-brand-500 px-2 py-1 font-semibold text-white hover:bg-brand-600"
+                >
+                  Generar tareas
+                </button>
+              </div>
+            )}
             {meeting.status !== 'FINISHED' && open > 0 && (
               <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
                 Quedan {open} punto{open === 1 ? '' : 's'} abierto{open === 1 ? '' : 's'}. Podés
