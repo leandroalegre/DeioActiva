@@ -164,3 +164,25 @@ export async function generateWorkItems(meetingId: string, items: GenerateWorkIt
   );
   return data;
 }
+
+export interface MeetingUser {
+  id: string;
+  fullName: string;
+  email: string;
+  active: boolean;
+  createdAt: string;
+}
+
+export async function fetchMeetingUsers(): Promise<MeetingUser[]> {
+  const { data } = await apiClient.get<MeetingUser[]>('/meeting-users');
+  return data;
+}
+
+export async function createMeetingUser(payload: {
+  fullName: string;
+  email: string;
+  password: string;
+}): Promise<MeetingUser> {
+  const { data } = await apiClient.post<MeetingUser>('/meeting-users', payload);
+  return data;
+}
