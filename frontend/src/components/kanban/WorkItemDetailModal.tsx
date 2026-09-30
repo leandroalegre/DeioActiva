@@ -4,6 +4,8 @@ import { fetchComments, createComment, updateComment } from '../../lib/comments-
 import { WORK_ITEM_PRIORITIES, WORK_ITEM_STATUSES, WORK_ITEM_TYPES } from '../../types/work-item';
 import type { WorkItem } from '../../types/work-item';
 import type { WorkItemComment } from '../../types/comment';
+import { WorkItemChecklistSection } from './WorkItemChecklist';
+import { WorkItemImagesSection } from './WorkItemImages';
 
 // Modal de detalle de una tarea: se abre al hacer click en una tarjeta del Kanban.
 // Agregado a pedido para que, ademas de ver la descripcion original, los desarrolladores
@@ -154,6 +156,10 @@ export function WorkItemDetailModal({
             <p className="whitespace-pre-wrap text-sm text-slate-600">{item.description}</p>
           </div>
         )}
+
+        <WorkItemChecklistSection item={item} />
+
+        <WorkItemImagesSection item={item} />
 
         <div className="border-t border-slate-100 pt-4">
           <h3 className="mb-2 text-sm font-semibold text-slate-700">

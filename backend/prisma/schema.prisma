@@ -146,8 +146,10 @@ model WorkItem {
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
 
-  comments WorkItemComment[]
-  history  WorkItemHistory[]
+  comments       WorkItemComment[]
+  history        WorkItemHistory[]
+  checklistItems WorkItemChecklistItem[]
+  attachments    WorkItemAttachment[]
 
   // Puntos de reunion que derivaron en esta tarea (ver MeetingPoint.workItemId).
   meetingPoints MeetingPoint[]
@@ -174,6 +176,44 @@ model WorkItemComment {
 
   @@index([workItemId])
   @@map("work_item_comments")
+}
+
+// Items tildables dentro de una tarea: el PM carga la lista al crear la tarea y los
+// desarrolladores van marcando cada punto a medida que lo resuelven.
+// doneById sin relacion a User a proposito (no suma relaciones inversas en User, que ya
+// genero conflictos de merge con la rama del servidor); el nombre se guarda en doneByName.
+model WorkItemChecklistItem {
+  id         String    @id @default(uuid())
+  workItemId String
+  workItem   WorkItem  @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  text       String    @db.Text
+  done       Boolean   @default(false)
+  position   Int       @default(0)
+  doneById   String?
+  doneByName String?
+  doneAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([workItemId])
+  @@map("work_item_checklist_items")
+}
+
+// Imagenes adjuntas a una tarea (capturas de pantalla, mockups). Se guardan en la base
+// (LONGBLOB) para no depender de una carpeta en el servidor ni de permisos de escritura, y
+// para que viajen con los backups de MySQL. Limite de tamaño en WorkItemAttachmentsService.
+model WorkItemAttachment {
+  id           String   @id @default(uuid())
+  workItemId   String
+  workItem     WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  fileName     String
+  mimeType     String
+  size         Int
+  data         Bytes    @db.LongBlob
+  uploadedById String
+  createdAt    DateTime @default(now())
+
+  @@index([workItemId])
+  @@map("work_item_attachments")
 }
 
 enum HistoryAction {

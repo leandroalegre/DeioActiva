@@ -47,6 +47,28 @@ export interface WorkItem {
   createdAt: string;
   updatedAt: string;
   _count?: { comments: number };
+  checklistItems?: WorkItemChecklistItem[];
+  attachments?: WorkItemAttachment[];
+}
+
+export interface WorkItemChecklistItem {
+  id: string;
+  workItemId: string;
+  text: string;
+  done: boolean;
+  position: number;
+  doneById?: string | null;
+  doneByName?: string | null;
+  doneAt?: string | null;
+  createdAt: string;
+}
+
+export interface WorkItemAttachment {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  size: number;
+  createdAt: string;
 }
 
 export interface ModuleTreeNode {
@@ -63,7 +85,7 @@ export interface ModuleTreeNode {
 export const WORK_ITEM_STATUSES: { value: WorkItemStatus; label: string }[] = [
   { value: 'PENDING', label: 'Pendiente' },
   { value: 'ANALYSIS', label: 'Análisis' },
-  { value: 'PLANNED', label: 'Planificado' },
+  { value: 'PLANNED', label: 'Planificado en localhost' },
   { value: 'DEVELOPMENT', label: 'Desarrollo' },
   { value: 'TESTING', label: 'Testing' },
   { value: 'BLOCKED', label: 'Bloqueado' },

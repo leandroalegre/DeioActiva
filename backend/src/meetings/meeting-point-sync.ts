@@ -20,7 +20,7 @@ export const POINT_TYPE_TO_WORK_ITEM_TYPE: Record<MeetingPointType, WorkItemType
 const WORK_ITEM_STATUS_LABEL: Record<WorkItemStatus, string> = {
   PENDING: 'Pendiente',
   ANALYSIS: 'Análisis',
-  PLANNED: 'Planificado',
+  PLANNED: 'Planificado en localhost',
   DEVELOPMENT: 'Desarrollo',
   TESTING: 'Testing',
   BLOCKED: 'Bloqueado',
