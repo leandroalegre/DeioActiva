@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { fetchMeetings, fetchPendingPoints, fetchMeetingOptions } from '../lib/meetings-api';
 import { MeetingFormModal } from '../components/meetings/MeetingFormModal';
+import { MeetingUsersModal } from '../components/meetings/MeetingUsersModal';
 import { useAuth } from '../app/auth/AuthContext';
 import { MEETING_MANAGER_ROLES } from '../config/roles';
 import {
@@ -34,6 +35,7 @@ export function ReunionesPage() {
   const [search, setSearch] = useState('');
   const [responsibleId, setResponsibleId] = useState('');
   const [showCreate, setShowCreate] = useState(false);
+  const [showUsers, setShowUsers] = useState(false);
 
   const meetingsQuery = useQuery({
     queryKey: ['meetings', { when, status }],
@@ -81,12 +83,20 @@ export function ReunionesPage() {
           </p>
         </div>
         {canManage && (
-          <button
-            onClick={() => setShowCreate(true)}
-            className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600"
-          >
-            + Nueva reunión
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowUsers(true)}
+              className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+            >
+              Usuarios de Reuniones
+            </button>
+            <button
+              onClick={() => setShowCreate(true)}
+              className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600"
+            >
+              + Nueva reunión
+            </button>
+          </div>
         )}
       </div>
 
@@ -231,7 +241,8 @@ export function ReunionesPage() {
               className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
             >
               <option value="">Todos los responsables</option>
-              {(options?.users ?? []).map((u) => (
+              {/* Solo usuarios con perfil Reuniones (a pedido). */}
+              {(options?.users ?? []).filter((u) => u.role?.code === 'reuniones').map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.fullName}
                 </option>
@@ -298,6 +309,7 @@ export function ReunionesPage() {
         </>
       )}
 
+      {showUsers && <MeetingUsersModal onClose={() => setShowUsers(false)} />}
       {showCreate && (
         <MeetingFormModal
           onClose={() => setShowCreate(false)}
