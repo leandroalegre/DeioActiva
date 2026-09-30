@@ -34,7 +34,7 @@ export function LoginPage() {
     <div className="flex h-screen items-center justify-center bg-slate-50">
       <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
         <div className="mb-6 flex items-center gap-2">
-          <div className="h-9 w-9 rounded-lg bg-brand-500" />
+          <img src="/deio-logo.png" alt="Deio" className="h-9 w-9" />
           <span className="text-xl font-semibold text-slate-800">DeioActiva</span>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
