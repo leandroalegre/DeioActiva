@@ -6,6 +6,7 @@ import { CreateWorkItemDto } from './dto/create-work-item.dto';
 import { UpdateWorkItemDto } from './dto/update-work-item.dto';
 import { QueryWorkItemsDto } from './dto/query-work-items.dto';
 import { PaginatedResult } from '../common/dto/pagination-query.dto';
+import { syncMeetingPointsWithWorkItem } from '../meetings/meeting-point-sync';
 
 const INCLUDE = {
   module: { select: { id: true, name: true, slug: true } },
@@ -103,16 +104,26 @@ export class WorkItemsService {
       where: { id },
       data: {
         ...rest,
-        ...(plannedStart !== undefined ? { plannedStart: toDateOrUndefined(plannedStart) ?? null } : {}),
+        ...(plannedStart !== undefined
+          ? { plannedStart: toDateOrUndefined(plannedStart) ?? null }
+          : {}),
         ...(plannedEnd !== undefined ? { plannedEnd: toDateOrUndefined(plannedEnd) ?? null } : {}),
         ...(dueDate !== undefined ? { dueDate: toDateOrUndefined(dueDate) ?? null } : {}),
-        ...(actualStart !== undefined ? { actualStart: toDateOrUndefined(actualStart) ?? null } : {}),
+        ...(actualStart !== undefined
+          ? { actualStart: toDateOrUndefined(actualStart) ?? null }
+          : {}),
         ...(actualEnd !== undefined ? { actualEnd: toDateOrUndefined(actualEnd) ?? null } : {}),
       },
       include: INCLUDE,
     });
 
     const statusChanged = dto.status && dto.status !== before.status;
+
+    // Si la tarea salio de un punto de reunion, el punto acompaña el estado de la tarea
+    // (Completada -> Resuelto, Descartada -> Descartado, etc.). Ver meeting-point-sync.ts.
+    if (statusChanged) {
+      await syncMeetingPointsWithWorkItem(this.prisma, id, workItem.status, userId);
+    }
 
     await this.history.record({
       workItemId: id,
@@ -130,6 +141,16 @@ export class WorkItemsService {
   // de la tarea tienen onDelete: Cascade en el schema, asi que se limpian solos.
   async remove(id: string) {
     await this.findOne(id);
-    await this.prisma.workItem.delete({ where: { id } });
+    // Tablas MyISAM (sin foreign keys): los onDelete del schema no se aplican, asi que se
+    // limpian a mano los comentarios/historial y se desvinculan los puntos de reunion.
+    await this.prisma.$transaction([
+      this.prisma.meetingPoint.updateMany({
+        where: { workItemId: id },
+        data: { workItemId: null },
+      }),
+      this.prisma.workItemComment.deleteMany({ where: { workItemId: id } }),
+      this.prisma.workItemHistory.deleteMany({ where: { workItemId: id } }),
+      this.prisma.workItem.delete({ where: { id } }),
+    ]);
   }
 }

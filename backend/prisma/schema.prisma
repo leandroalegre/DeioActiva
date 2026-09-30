@@ -38,28 +38,34 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  refreshTokens       RefreshToken[]
-  createdModules      Module[]           @relation("ModuleCreatedBy")
-  assignedWorkItems   WorkItem[]         @relation("WorkItemAssignee")
-  createdWorkItems    WorkItem[]         @relation("WorkItemCreatedBy")
-  comments            WorkItemComment[]
-  historyEntries      WorkItemHistory[]
-  createdMilestones   Milestone[]        @relation("MilestoneCreatedBy")
+  refreshTokens     RefreshToken[]
+  createdModules    Module[]          @relation("ModuleCreatedBy")
+  assignedWorkItems WorkItem[]        @relation("WorkItemAssignee")
+  createdWorkItems  WorkItem[]        @relation("WorkItemCreatedBy")
+  comments          WorkItemComment[]
+  historyEntries    WorkItemHistory[]
+  createdMilestones Milestone[]       @relation("MilestoneCreatedBy")
+
+  // Reuniones
+  createdMeetings          Meeting[]            @relation("MeetingCreatedBy")
+  meetingParticipations    MeetingParticipant[]
+  responsibleMeetingPoints MeetingPoint[]       @relation("MeetingPointResponsible")
+  meetingPointNotes        MeetingPointNote[]
 
   @@map("users")
 }
 
 model RefreshToken {
-  id                String    @id @default(uuid())
+  id                String   @id @default(uuid())
   userId            String
-  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   tokenHash         String
   expiresAt         DateTime
-  revoked           Boolean   @default(false)
+  revoked           Boolean  @default(false)
   replacedByTokenId String?
   userAgent         String?
   ipAddress         String?
-  createdAt         DateTime  @default(now())
+  createdAt         DateTime @default(now())
 
   @@index([userId])
   @@map("refresh_tokens")
@@ -143,6 +149,9 @@ model WorkItem {
   comments WorkItemComment[]
   history  WorkItemHistory[]
 
+  // Puntos de reunion que derivaron en esta tarea (ver MeetingPoint.workItemId).
+  meetingPoints MeetingPoint[]
+
   @@index([moduleId])
   @@index([assignedToId])
   @@index([status])
@@ -214,7 +223,142 @@ model Milestone {
 
   // Tareas (WorkItem) que se marcaron como parte de este hito, para poder mostrar en el
   // Roadmap cuantas de las tareas asociadas ya estan completadas.
-  workItems   WorkItem[]
+  workItems WorkItem[]
 
   @@map("milestones")
+}
+
+// ---------------------------------------------------------------------------------------
+// REUNIONES
+// Modelo inspirado en el modulo Reuniones de Gestion Activa: una reunion tiene participantes
+// (usuarios del sistema o externos), un orden del dia con puntos a tratar, y cada punto
+// registra su resolucion, responsable, fecha de control y un historial de seguimiento.
+// ---------------------------------------------------------------------------------------
+
+enum MeetingStatus {
+  SCHEDULED
+  IN_PROGRESS
+  FINISHED
+  CANCELLED
+}
+
+enum MeetingFrequency {
+  UNIQUE
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+  ON_DEMAND
+}
+
+model Meeting {
+  id                String           @id @default(uuid())
+  title             String
+  area              String?
+  description       String?          @db.Text
+  location          String?
+  // Fecha "solo dia" (medianoche UTC, igual que los hitos) + horas HH:MM como texto.
+  date              DateTime
+  startTime         String?
+  endTime           String?
+  frequency         MeetingFrequency @default(UNIQUE)
+  status            MeetingStatus    @default(SCHEDULED)
+  // Observaciones generales del acta (lo que no encaja en ningun punto puntual).
+  minutesNotes      String?          @db.Text
+  finishedAt        DateTime?
+  // Reunion anterior de la misma serie (se completa al "arrastrar pendientes").
+  previousMeetingId String?
+  previousMeeting   Meeting?         @relation("MeetingSeries", fields: [previousMeetingId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  nextMeetings      Meeting[]        @relation("MeetingSeries")
+  createdById       String?
+  createdBy         User?            @relation("MeetingCreatedBy", fields: [createdById], references: [id])
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  participants MeetingParticipant[]
+  points       MeetingPoint[]
+
+  @@index([date])
+  @@index([status])
+  @@map("meetings")
+}
+
+model MeetingParticipant {
+  id        String   @id @default(uuid())
+  meetingId String
+  meeting   Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  // Usuario del sistema (opcional). Si es null, es un participante externo y solo tiene nombre.
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  name      String
+  // null = sin registrar, true = asistio, false = ausente.
+  attended  Boolean?
+  createdAt DateTime @default(now())
+
+  @@index([meetingId])
+  @@index([userId])
+  @@map("meeting_participants")
+}
+
+enum MeetingPointType {
+  TOPIC
+  REQUIREMENT
+  ACTION
+  DECISION
+  FOLLOW_UP
+  NOTE
+}
+
+enum MeetingPointStatus {
+  PENDING
+  IN_PROGRESS
+  RESOLVED
+  POSTPONED
+  CANCELLED
+}
+
+model MeetingPoint {
+  id            String             @id @default(uuid())
+  meetingId     String
+  meeting       Meeting            @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  order         Int                @default(0)
+  title         String
+  description   String?            @db.Text
+  type          MeetingPointType   @default(TOPIC)
+  status        MeetingPointStatus @default(PENDING)
+  // Resolucion / acuerdo alcanzado sobre el punto.
+  resolution    String?            @db.Text
+  responsibleId String?
+  responsible   User?              @relation("MeetingPointResponsible", fields: [responsibleId], references: [id])
+  dueDate       DateTime?
+  // Tarea del Kanban generada a partir de este punto (opcional).
+  workItemId    String?
+  workItem      WorkItem?          @relation(fields: [workItemId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  // Punto de una reunion anterior del cual este es continuacion (arrastre de pendientes).
+  carriedFromId String?            @unique
+  carriedFrom   MeetingPoint?      @relation("MeetingPointCarry", fields: [carriedFromId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  carriedTo     MeetingPoint?      @relation("MeetingPointCarry")
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  notes MeetingPointNote[]
+
+  @@index([meetingId])
+  @@index([responsibleId])
+  @@index([status])
+  @@map("meeting_points")
+}
+
+// Historial de seguimiento de un punto ("avances"), equivalente a las observaciones de
+// las tareas de reunion en Gestion Activa.
+model MeetingPointNote {
+  id        String       @id @default(uuid())
+  pointId   String
+  point     MeetingPoint @relation(fields: [pointId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User         @relation(fields: [authorId], references: [id])
+  text      String       @db.Text
+  createdAt DateTime     @default(now())
+
+  @@index([pointId])
+  @@map("meeting_point_notes")
 }

@@ -8,6 +8,7 @@ const ROLES = [
   { code: 'admin', name: 'Administrador' },
   { code: 'developer', name: 'Desarrollador' },
   { code: 'tester', name: 'Tester' },
+  { code: 'reuniones', name: 'Reuniones' },
 ];
 
 async function seedRoles() {

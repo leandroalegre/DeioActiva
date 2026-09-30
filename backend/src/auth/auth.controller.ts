@@ -8,6 +8,8 @@ import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from './types/authenticated-user.type';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { ScopedRolesAllowed } from '../common/decorators/roles.decorator';
+import { SCOPED_ROLE_CODES } from '../common/constants/roles.constant';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -37,6 +39,7 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @ScopedRolesAllowed(...SCOPED_ROLE_CODES)
   @Get('me')
   me(@CurrentUser() user: AuthenticatedUser) {
     return user;
