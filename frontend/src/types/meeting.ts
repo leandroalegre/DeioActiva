@@ -87,7 +87,7 @@ export interface Meeting extends Omit<MeetingSummary, 'participants' | 'pointsSu
 }
 
 export interface MeetingOptions {
-  users: UserRef[];
+  users: (UserRef & { role?: { code: string } })[];
   modules: { id: string; name: string; parentId?: string | null }[];
 }
 

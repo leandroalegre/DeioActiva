@@ -100,7 +100,9 @@ export class MeetingsService {
     const [users, modules] = await Promise.all([
       this.prisma.user.findMany({
         where: { active: true },
-        select: { id: true, fullName: true, email: true },
+        // El rol se usa en el frontend para no ofrecer a los desarrolladores como
+        // participantes al programar una reunion (si siguen disponibles como responsables).
+        select: { id: true, fullName: true, email: true, role: { select: { code: true } } },
         orderBy: { fullName: 'asc' },
       }),
       this.prisma.module.findMany({

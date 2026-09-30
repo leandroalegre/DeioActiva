@@ -64,9 +64,16 @@ export function MeetingFormModal({
 
   const filteredUsers = useMemo(() => {
     const q = userFilter.trim().toLowerCase();
+    // Los desarrolladores no se ofrecen como participantes (a pedido). Si una reunion vieja
+    // ya tenia uno cargado, se sigue mostrando para poder quitarlo.
     return (options?.users ?? []).filter(
-      (u) => !q || u.fullName.toLowerCase().includes(q) || u.email.toLowerCase().includes(q),
+      (u) =>
+        (u.role?.code !== 'developer' || userIds.includes(u.id)) &&
+        (!q || u.fullName.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)),
     );
+  // userIds a proposito fuera de las dependencias: si se destilda un desarrollador que ya
+  // estaba cargado, sigue visible hasta cerrar el modal.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options, userFilter]);
 
   const mutation = useMutation({
