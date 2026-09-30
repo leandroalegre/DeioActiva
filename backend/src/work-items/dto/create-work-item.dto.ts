@@ -1,6 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { WorkItemArea, WorkItemPriority, WorkItemType } from '@prisma/client';
 import {
+  ArrayMaxSize,
+  IsArray,
   IsDateString,
   IsEnum,
   IsInt,
@@ -8,6 +10,7 @@ import {
   IsString,
   IsUUID,
   Max,
+  MaxLength,
   Min,
 } from 'class-validator';
 
@@ -82,4 +85,14 @@ export class CreateWorkItemDto {
   @IsOptional()
   @IsUUID()
   milestoneId?: string;
+
+  // Items tildables de la tarea (uno por linea en el formulario). Solo se usa al crear: despues
+  // se gestionan con /work-items/:id/checklist (UpdateWorkItemDto lo omite).
+  @ApiPropertyOptional({ type: [String], description: 'Items del checklist, en orden' })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(100)
+  @IsString({ each: true })
+  @MaxLength(1000, { each: true })
+  checklist?: string[];
 }

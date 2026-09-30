@@ -1,5 +1,6 @@
 import type { WorkItem } from '../../types/work-item';
 import { WORK_ITEM_AREAS, WORK_ITEM_PRIORITIES, WORK_ITEM_TYPES } from '../../types/work-item';
+import { ChecklistProgressBar } from './WorkItemChecklist';
 
 // Una tarea se considera vencida si tiene fecha limite, esa fecha ya paso, y todavia no
 // esta completada/descartada -- se usa para marcar la tarjeta con una bandera visual y que
@@ -25,6 +26,7 @@ export function KanbanCard({
   const commentCount = item._count?.comments ?? 0;
   const overdue = isOverdue(item);
   const noGanttDates = (item.status !== 'COMPLETED' && item.status !== 'DISCARDED') && (!item.plannedStart || !item.plannedEnd);
+  const imageCount = item.attachments?.length ?? 0;
 
   return (
     <div
@@ -75,8 +77,16 @@ export function KanbanCard({
           Bloqueada{item.blockReason ? `: ${item.blockReason}` : ''}
         </p>
       )}
-      {commentCount > 0 && (
-        <p className="mt-2 text-xs text-slate-400">💬 {commentCount}</p>
+      {(item.checklistItems?.length ?? 0) > 0 && (
+        <div className="mt-2" title="Items del checklist resueltos">
+          <ChecklistProgressBar items={item.checklistItems} />
+        </div>
+      )}
+      {(commentCount > 0 || imageCount > 0) && (
+        <p className="mt-2 flex gap-3 text-xs text-slate-400">
+          {commentCount > 0 && <span>💬 {commentCount}</span>}
+          {imageCount > 0 && <span>🖼 {imageCount}</span>}
+        </p>
       )}
     </div>
   );

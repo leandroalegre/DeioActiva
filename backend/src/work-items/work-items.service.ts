@@ -14,6 +14,12 @@ const INCLUDE = {
   createdBy: { select: { id: true, fullName: true, email: true } },
   milestone: { select: { id: true, name: true } },
   _count: { select: { comments: true } },
+  checklistItems: { orderBy: [{ position: 'asc' as const }, { createdAt: 'asc' as const }] },
+  // Solo metadatos: el contenido (data) se sirve aparte en GET .../attachments/:id.
+  attachments: {
+    select: { id: true, fileName: true, mimeType: true, size: true, createdAt: true },
+    orderBy: { createdAt: 'asc' as const },
+  },
 };
 
 // Convierte un string "YYYY-MM-DD" (o ISO completo) que llega de un <input type="date">
@@ -82,6 +88,12 @@ export class WorkItemsService {
         versionTarget: dto.versionTarget,
         milestoneId: dto.milestoneId,
         createdById,
+        checklistItems: {
+          create: (dto.checklist ?? [])
+            .map((text) => text.trim())
+            .filter((text) => text.length > 0)
+            .map((text, position) => ({ text, position })),
+        },
       },
       include: INCLUDE,
     });
@@ -154,7 +166,7 @@ export class WorkItemsService {
   async remove(id: string) {
     await this.findOne(id);
     // Tablas MyISAM (sin foreign keys): los onDelete del schema no se aplican, asi que se
-    // limpian a mano los comentarios/historial y se desvinculan los puntos de reunion.
+    // limpian a mano los comentarios/historial/checklist/imagenes y se desvinculan los puntos de reunion.
     await this.prisma.$transaction([
       this.prisma.meetingPoint.updateMany({
         where: { workItemId: id },
@@ -162,6 +174,8 @@ export class WorkItemsService {
       }),
       this.prisma.workItemComment.deleteMany({ where: { workItemId: id } }),
       this.prisma.workItemHistory.deleteMany({ where: { workItemId: id } }),
+      this.prisma.workItemChecklistItem.deleteMany({ where: { workItemId: id } }),
+      this.prisma.workItemAttachment.deleteMany({ where: { workItemId: id } }),
       this.prisma.workItem.delete({ where: { id } }),
     ]);
   }
