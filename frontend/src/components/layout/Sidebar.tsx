@@ -17,7 +17,7 @@ export function Sidebar() {
   return (
     <aside className="flex h-full w-60 flex-col border-r border-slate-200 bg-white">
       <div className="flex h-16 items-center gap-2 border-b border-slate-200 px-5">
-        <div className="h-8 w-8 rounded-lg bg-brand-500" />
+        <img src="/deio-logo.png" alt="Deio" className="h-8 w-8" />
         <span className="text-lg font-semibold text-slate-800">DeioActiva</span>
       </div>
       <nav className="flex-1 space-y-1 p-3">
