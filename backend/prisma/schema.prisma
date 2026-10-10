@@ -65,9 +65,9 @@ model User {
 // Rol extra de un usuario, que se suma a User.role. Asi los perfiles acotados (reuniones,
 // qa) se pueden combinar sin cambiar el rol principal ni el resto del codigo que lo usa.
 model UserAdditionalRole {
-  userId    String
+  userId    String   @db.VarChar(36)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  roleId    String
+  roleId    String   @db.VarChar(36)
   role      Role     @relation(fields: [roleId], references: [id])
   createdAt DateTime @default(now())
 
