@@ -5,7 +5,7 @@ import { fetchMeetings, fetchPendingPoints, fetchMeetingOptions } from '../lib/m
 import { MeetingFormModal } from '../components/meetings/MeetingFormModal';
 import { MeetingUsersModal } from '../components/meetings/MeetingUsersModal';
 import { useAuth } from '../app/auth/AuthContext';
-import { MEETING_MANAGER_ROLES } from '../config/roles';
+import { MEETING_MANAGER_ROLES, hasAnyRole } from '../config/roles';
 import {
   MEETING_STATUSES,
   POINT_STATUSES,
@@ -27,7 +27,7 @@ type When = 'upcoming' | 'past' | 'all';
 export function ReunionesPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const canManage = Boolean(user && MEETING_MANAGER_ROLES.includes(user.role.code));
+  const canManage = Boolean(user && hasAnyRole(user, MEETING_MANAGER_ROLES));
 
   const [tab, setTab] = useState<Tab>('meetings');
   const [when, setWhen] = useState<When>('all');

@@ -4,6 +4,8 @@ import { PrismaService } from '../common/prisma/prisma.service';
 import { HistoryService } from '../history/history.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
+import { AuthenticatedUser } from '../auth/types/authenticated-user.type';
+import { assertWorkItemVisible } from '../work-items/work-item-access';
 
 const INCLUDE = { author: { select: { id: true, fullName: true, email: true } } };
 
@@ -14,7 +16,8 @@ export class CommentsService {
     private readonly history: HistoryService,
   ) {}
 
-  findByWorkItem(workItemId: string) {
+  async findByWorkItem(workItemId: string, user: AuthenticatedUser) {
+    await assertWorkItemVisible(this.prisma, workItemId, user);
     return this.prisma.workItemComment.findMany({
       where: { workItemId },
       orderBy: { createdAt: 'asc' },
@@ -22,7 +25,9 @@ export class CommentsService {
     });
   }
 
-  async create(dto: CreateCommentDto, authorId: string) {
+  async create(dto: CreateCommentDto, user: AuthenticatedUser) {
+    await assertWorkItemVisible(this.prisma, dto.workItemId, user);
+    const authorId = user.id;
     const comment = await this.prisma.workItemComment.create({
       data: {
         workItemId: dto.workItemId,

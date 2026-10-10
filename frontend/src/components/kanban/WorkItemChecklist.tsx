@@ -29,7 +29,14 @@ export function ChecklistProgressBar({ items }: { items: WorkItemChecklistItem[]
 
 // Seccion "Checklist" del detalle de la tarea: los desarrolladores tildan cada punto a medida
 // que lo resuelven. El cambio se ve al instante (optimista) y queda registrado quien lo tildo.
-export function WorkItemChecklistSection({ item }: { item: WorkItem }) {
+// readOnly (perfil QA): se ve el avance pero no se tilda, edita ni agrega nada.
+export function WorkItemChecklistSection({
+  item,
+  readOnly = false,
+}: {
+  item: WorkItem;
+  readOnly?: boolean;
+}) {
   const queryClient = useQueryClient();
   const [newText, setNewText] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -98,6 +105,8 @@ export function WorkItemChecklistSection({ item }: { item: WorkItem }) {
     if (texts.length) addMutation.mutate(texts);
   }
 
+  if (readOnly && items.length === 0) return null;
+
   return (
     <div className="mb-4">
       <h3 className="mb-2 text-sm font-semibold text-slate-700">Checklist</h3>
@@ -120,6 +129,7 @@ export function WorkItemChecklistSection({ item }: { item: WorkItem }) {
             <input
               type="checkbox"
               checked={ci.done}
+              disabled={readOnly}
               onChange={(e) => {
                 setError(null);
                 toggleMutation.mutate({ id: ci.id, done: e.target.checked });
@@ -165,7 +175,7 @@ export function WorkItemChecklistSection({ item }: { item: WorkItem }) {
                 )}
               </div>
             )}
-            {editingId !== ci.id && (
+            {editingId !== ci.id && !readOnly && (
               <div className="hidden shrink-0 gap-1 group-hover:flex">
                 <button
                   type="button"
@@ -191,30 +201,32 @@ export function WorkItemChecklistSection({ item }: { item: WorkItem }) {
           </li>
         ))}
       </ul>
-      <form onSubmit={handleAdd} className="flex gap-2">
-        <input
-          value={newText}
-          onChange={(e) => setNewText(e.target.value)}
-          onPaste={(e) => {
-            // Pegar varias lineas agrega un item por linea.
-            const pasted = e.clipboardData.getData('text');
-            if (pasted.includes('\n')) {
-              e.preventDefault();
-              const texts = parseChecklistLines(pasted);
-              if (texts.length) addMutation.mutate(texts);
-            }
-          }}
-          placeholder="Nuevo item (o pegá una lista)"
-          className="flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-        />
-        <button
-          type="submit"
-          disabled={addMutation.isPending || !newText.trim()}
-          className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-60"
-        >
-          Agregar
-        </button>
-      </form>
+      {!readOnly && (
+        <form onSubmit={handleAdd} className="flex gap-2">
+          <input
+            value={newText}
+            onChange={(e) => setNewText(e.target.value)}
+            onPaste={(e) => {
+              // Pegar varias lineas agrega un item por linea.
+              const pasted = e.clipboardData.getData('text');
+              if (pasted.includes('\n')) {
+                e.preventDefault();
+                const texts = parseChecklistLines(pasted);
+                if (texts.length) addMutation.mutate(texts);
+              }
+            }}
+            placeholder="Nuevo item (o pegá una lista)"
+            className="flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+          />
+          <button
+            type="submit"
+            disabled={addMutation.isPending || !newText.trim()}
+            className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-60"
+          >
+            Agregar
+          </button>
+        </form>
+      )}
       {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
     </div>
   );

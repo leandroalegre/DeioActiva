@@ -5,6 +5,7 @@ import { MilestoneFormModal } from '../components/milestones/MilestoneFormModal'
 import { MILESTONE_STATUSES } from '../types/milestone';
 import { useAuth } from '../app/auth/AuthContext';
 import type { Milestone } from '../types/milestone';
+import { hasAnyRole } from '../config/roles';
 
 const ADMIN_ROLES = ['super_admin', 'admin'];
 
@@ -20,7 +21,7 @@ function formatDate(iso: string) {
 
 export function RoadmapPage() {
   const { user } = useAuth();
-  const canEdit = Boolean(user && ADMIN_ROLES.includes(user.role.code));
+  const canEdit = Boolean(user && hasAnyRole(user, ADMIN_ROLES));
 
   const { data: milestones, isLoading, isError } = useQuery({
     queryKey: ['milestones'],

@@ -3,7 +3,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ModulesService } from './modules.service';
 import { CreateModuleDto } from './dto/create-module.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
-import { Roles } from '../common/decorators/roles.decorator';
+import { Roles, ScopedRolesAllowed } from '../common/decorators/roles.decorator';
 import { ROLE_CODES } from '../common/constants/roles.constant';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../auth/types/authenticated-user.type';
@@ -14,6 +14,8 @@ import { AuthenticatedUser } from '../auth/types/authenticated-user.type';
 export class ModulesController {
   constructor(private readonly modulesService: ModulesService) {}
 
+  // El perfil QA puede elegir en que modulo encontro el problema al reportarlo (solo lectura).
+  @ScopedRolesAllowed(ROLE_CODES.QA)
   @Get()
   findTree() {
     return this.modulesService.findTree();

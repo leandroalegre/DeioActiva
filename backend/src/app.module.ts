@@ -11,6 +11,7 @@ import { CommentsModule } from './comments/comments.module';
 import { HistoryModule } from './history/history.module';
 import { MilestonesModule } from './milestones/milestones.module';
 import { MeetingsModule } from './meetings/meetings.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { AppController } from './app.controller';
@@ -28,6 +29,7 @@ import { AppController } from './app.controller';
     HistoryModule,
     MilestonesModule,
     MeetingsModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [

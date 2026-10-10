@@ -15,10 +15,12 @@ export function KanbanCard({
   item,
   onDragStart,
   onClick,
+  draggable = true,
 }: {
   item: WorkItem;
   onDragStart: (e: React.DragEvent, item: WorkItem) => void;
   onClick: (item: WorkItem) => void;
+  draggable?: boolean;
 }) {
   const priority = WORK_ITEM_PRIORITIES.find((p) => p.value === item.priority);
   const type = WORK_ITEM_TYPES.find((t) => t.value === item.type);
@@ -27,11 +29,15 @@ export function KanbanCard({
   const overdue = isOverdue(item);
   const noGanttDates = (item.status !== 'COMPLETED' && item.status !== 'DISCARDED') && (!item.plannedStart || !item.plannedEnd);
   const imageCount = item.attachments?.length ?? 0;
+  const suggested =
+    item.status === 'QA_REPORT' && item.suggestedPriority
+      ? WORK_ITEM_PRIORITIES.find((p) => p.value === item.suggestedPriority)
+      : undefined;
 
   return (
     <div
-      draggable
-      onDragStart={(e) => onDragStart(e, item)}
+      draggable={draggable}
+      onDragStart={(e) => draggable && onDragStart(e, item)}
       onClick={() => onClick(item)}
       className={`cursor-pointer rounded-xl border bg-white p-3 shadow-sm transition-shadow hover:shadow-md active:cursor-grabbing ${
         overdue ? 'border-red-300 border-l-4 border-l-red-500' : 'border-slate-200'
@@ -61,7 +67,9 @@ export function KanbanCard({
               </span>
             )}
           {priority && (
-            <span className={`rounded border px-1.5 py-0.5 text-[11px] font-medium ${priority.color}`}>
+            <span
+              className={`rounded border px-1.5 py-0.5 text-[11px] font-medium ${priority.color}`}
+            >
               {priority.label}
             </span>
           )}
@@ -69,6 +77,13 @@ export function KanbanCard({
       </div>
       <p className="text-sm font-medium leading-snug text-slate-800">{item.title}</p>
       <p className="mt-1 text-xs text-slate-500">{item.module?.name}</p>
+      {item.establishment && <p className="mt-1 text-xs text-slate-500">🏢 {item.establishment}</p>}
+      {item.status === 'QA_REPORT' && (
+        <p className="mt-1 text-xs text-slate-500">
+          📝 {item.createdBy?.fullName}
+          {suggested ? ` · sugiere ${suggested.label.toLowerCase()}` : ''}
+        </p>
+      )}
       {item.assignedTo && (
         <p className="mt-2 text-xs text-slate-500">👤 {item.assignedTo.fullName}</p>
       )}

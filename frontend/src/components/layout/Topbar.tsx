@@ -1,4 +1,5 @@
 import { useAuth } from '../../app/auth/AuthContext';
+import { NotificationsBell } from './NotificationsBell';
 
 export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
   const { user, logout } = useAuth();
@@ -14,9 +15,14 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
           <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </button>
+      <NotificationsBell />
       <div className="text-right">
         <p className="text-sm font-medium text-slate-800">{user?.fullName}</p>
-        <p className="text-xs text-slate-500">{user?.role.name}</p>
+        <p className="text-xs text-slate-500">
+          {[user?.role.name, ...(user?.additionalRoles ?? []).map((r) => r.name)]
+            .filter(Boolean)
+            .join(' + ')}
+        </p>
       </div>
       <button
         onClick={() => logout()}

@@ -21,6 +21,8 @@ model Role {
   code      String   @unique
   name      String
   users     User[]
+  // Usuarios que tienen este rol como rol adicional (ver UserAdditionalRole).
+  additionalUsers UserAdditionalRole[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -53,7 +55,40 @@ model User {
   responsibleMeetingPoints MeetingPoint[]       @relation("MeetingPointResponsible")
   meetingPointNotes        MeetingPointNote[]
 
+  // Roles adicionales al principal (ej. una usuaria de Reuniones que ademas reporta como QA).
+  additionalRoles UserAdditionalRole[]
+  notifications   Notification[]
+
   @@map("users")
+}
+
+// Rol extra de un usuario, que se suma a User.role. Asi los perfiles acotados (reuniones,
+// qa) se pueden combinar sin cambiar el rol principal ni el resto del codigo que lo usa.
+model UserAdditionalRole {
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roleId    String
+  role      Role     @relation(fields: [roleId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@id([userId, roleId])
+  @@index([roleId])
+  @@map("user_additional_roles")
+}
+
+// Aviso dentro de la app (campanita). Hoy se usa para avisarle a quien reporto un problema
+// como QA que su tarjeta llego a Completado y tiene que validar la correccion.
+model Notification {
+  id         String    @id @default(uuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workItemId String?
+  text       String    @db.Text
+  readAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId, readAt])
+  @@map("notifications")
 }
 
 model RefreshToken {
@@ -110,6 +145,8 @@ enum WorkItemArea {
 }
 
 enum WorkItemStatus {
+  // Entrada de los reportes que cargan los usuarios QA; el equipo los prioriza desde aca.
+  QA_REPORT
   PENDING
   ANALYSIS
   PLANNED
@@ -152,6 +189,10 @@ model WorkItem {
   blocked            Boolean          @default(false)
   blockReason        String?          @db.Text
   versionTarget      String?
+  // Datos de los reportes QA: establecimiento donde aparecio el problema y la severidad que
+  // sugiere quien reporta (la prioridad real la decide el equipo al hacer el triage).
+  establishment      String?
+  suggestedPriority  WorkItemPriority?
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
 
@@ -167,6 +208,7 @@ model WorkItem {
   @@index([assignedToId])
   @@index([status])
   @@index([milestoneId])
+  @@index([createdById])
   @@map("work_items")
 }
 

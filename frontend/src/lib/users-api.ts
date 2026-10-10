@@ -14,6 +14,7 @@ export interface CreateUserPayload {
   password: string;
   fullName: string;
   roleId: string;
+  additionalRoleIds?: string[];
   active?: boolean;
 }
 
@@ -26,6 +27,7 @@ export interface UpdateUserPayload {
   email?: string;
   fullName?: string;
   roleId?: string;
+  additionalRoleIds?: string[];
   active?: boolean;
   password?: string;
 }

@@ -14,7 +14,12 @@ import {
 } from '../lib/meetings-api';
 import { getApiErrorMessage } from '../lib/api-client';
 import { useAuth } from '../app/auth/AuthContext';
-import { MEETING_MANAGER_ROLES, isPathAllowedFor } from '../config/roles';
+import {
+  MEETING_MANAGER_ROLES,
+  hasAnyRole,
+  isPathAllowedFor,
+  isQaRestricted,
+} from '../config/roles';
 import { MeetingFormModal } from '../components/meetings/MeetingFormModal';
 import { PointFormModal } from '../components/meetings/PointFormModal';
 import { MeetingPointCard } from '../components/meetings/MeetingPointCard';
@@ -34,8 +39,9 @@ export function ReunionDetallePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const canManage = Boolean(user && MEETING_MANAGER_ROLES.includes(user.role.code));
-  const canTrackTasks = isPathAllowedFor(user?.role.code, '/tareas');
+  const canManage = Boolean(user && hasAnyRole(user, MEETING_MANAGER_ROLES));
+  // Un perfil QA entra a Tareas pero solo ve sus reportes, no las tareas de las reuniones.
+  const canTrackTasks = isPathAllowedFor(user, '/tareas') && !isQaRestricted(user);
 
   const { data: meeting, isLoading, isError } = useQuery({
     queryKey: ['meeting', id],

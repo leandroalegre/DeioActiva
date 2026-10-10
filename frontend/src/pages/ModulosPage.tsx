@@ -4,6 +4,7 @@ import { fetchModuleTree } from '../lib/modules-api';
 import { ModuleFormModal } from '../components/modules/ModuleFormModal';
 import { useAuth } from '../app/auth/AuthContext';
 import type { ModuleTreeNode } from '../types/work-item';
+import { hasAnyRole } from '../config/roles';
 
 const ADMIN_ROLES = ['super_admin', 'admin'];
 
@@ -72,7 +73,7 @@ function ModuleNode({
 
 export function ModulosPage() {
   const { user } = useAuth();
-  const canEdit = Boolean(user && ADMIN_ROLES.includes(user.role.code));
+  const canEdit = Boolean(user && hasAnyRole(user, ADMIN_ROLES));
 
   const { data: tree, isLoading, isError } = useQuery({
     queryKey: ['modules'],

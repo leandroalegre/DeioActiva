@@ -19,7 +19,7 @@ import {
 } from '../../lib/work-item-extras';
 
 // Miniaturas de las imagenes elegidas antes de crear la tarea (todavia no subidas).
-function PendingImages({ files, onRemove }: { files: File[]; onRemove: (index: number) => void }) {
+export function PendingImages({ files, onRemove }: { files: File[]; onRemove: (index: number) => void }) {
   const urls = useMemo(() => files.map((f) => URL.createObjectURL(f)), [files]);
   useEffect(() => () => urls.forEach((u) => URL.revokeObjectURL(u)), [urls]);
   return (

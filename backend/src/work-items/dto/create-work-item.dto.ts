@@ -15,9 +15,12 @@ import {
 } from 'class-validator';
 
 export class CreateWorkItemDto {
-  @ApiProperty()
+  // Obligatorio para todos salvo para el perfil QA: si un reporte QA no indica modulo, cae
+  // en el modulo "Reportes QA" (lo valida WorkItemsService.create).
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsUUID()
-  moduleId: string;
+  moduleId?: string;
 
   @ApiProperty({ enum: WorkItemType })
   @IsEnum(WorkItemType)
@@ -85,6 +88,20 @@ export class CreateWorkItemDto {
   @IsOptional()
   @IsUUID()
   milestoneId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Establecimiento donde se encontro el problema (reportes QA)',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(191)
+  establishment?: string;
+
+  // Severidad que sugiere quien reporta. No pisa la prioridad: esa la define el equipo.
+  @ApiPropertyOptional({ enum: WorkItemPriority })
+  @IsOptional()
+  @IsEnum(WorkItemPriority)
+  suggestedPriority?: WorkItemPriority;
 
   // Items tildables de la tarea (uno por linea en el formulario). Solo se usa al crear: despues
   // se gestionan con /work-items/:id/checklist (UpdateWorkItemDto lo omite).

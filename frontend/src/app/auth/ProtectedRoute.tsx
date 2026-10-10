@@ -19,8 +19,8 @@ export function ProtectedRoute() {
   }
 
   // Perfil acotado (ej. "reuniones"): cualquier otra ruta lo lleva a su seccion.
-  if (!isPathAllowedFor(user.role.code, location.pathname)) {
-    const home = scopedPathsFor(user.role.code)?.[0] ?? '/';
+  if (!isPathAllowedFor(user, location.pathname)) {
+    const home = scopedPathsFor(user)?.[0] ?? '/';
     return <Navigate to={home} replace />;
   }
 

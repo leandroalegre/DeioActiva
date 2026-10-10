@@ -9,6 +9,7 @@ export function KanbanColumn({
   onDragStart,
   onDrop,
   onCardClick,
+  canDrag = true,
 }: {
   status: WorkItemStatus;
   label: string;
@@ -16,12 +17,15 @@ export function KanbanColumn({
   onDragStart: (e: React.DragEvent, item: WorkItem) => void;
   onDrop: (status: WorkItemStatus) => void;
   onCardClick: (item: WorkItem) => void;
+  // false para el perfil QA: ve el avance pero no mueve tarjetas.
+  canDrag?: boolean;
 }) {
   const [isOver, setIsOver] = useState(false);
 
   return (
     <div
       onDragOver={(e) => {
+        if (!canDrag) return;
         e.preventDefault();
         setIsOver(true);
       }}
@@ -42,11 +46,15 @@ export function KanbanColumn({
       </div>
       <div className="flex flex-1 flex-col gap-2 overflow-y-auto">
         {items.map((item) => (
-          <KanbanCard key={item.id} item={item} onDragStart={onDragStart} onClick={onCardClick} />
+          <KanbanCard
+            key={item.id}
+            item={item}
+            onDragStart={onDragStart}
+            onClick={onCardClick}
+            draggable={canDrag}
+          />
         ))}
-        {items.length === 0 && (
-          <p className="px-1 text-xs text-slate-400">Sin tareas</p>
-        )}
+        {items.length === 0 && <p className="px-1 text-xs text-slate-400">Sin tareas</p>}
       </div>
     </div>
   );

@@ -3,6 +3,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createUser, updateUser } from '../../lib/users-api';
 import { fetchRoles } from '../../lib/roles-api';
 import type { AppUser } from '../../types/user';
+import { SCOPED_ROLE_PATHS } from '../../config/roles';
+
+// Solo los perfiles acotados (Reuniones, QA) tienen sentido como rol adicional: suman una
+// seccion puntual a otro perfil. Un rol completo (admin, developer) ya ve todo.
+const COMBINABLE_ROLE_CODES = Object.keys(SCOPED_ROLE_PATHS);
 
 export function UserFormModal({ user, onClose }: { user?: AppUser; onClose: () => void }) {
   const queryClient = useQueryClient();
@@ -12,30 +17,48 @@ export function UserFormModal({ user, onClose }: { user?: AppUser; onClose: () =
   const [email, setEmail] = useState(user?.email ?? '');
   const [fullName, setFullName] = useState(user?.fullName ?? '');
   const [roleId, setRoleId] = useState(user?.role.id ?? '');
+  const [additionalRoleIds, setAdditionalRoleIds] = useState<string[]>(
+    (user?.additionalRoles ?? []).map((r) => r.id),
+  );
   const [password, setPassword] = useState('');
   const [active, setActive] = useState(user?.active ?? true);
   const [error, setError] = useState<string | null>(null);
 
   const mutation = useMutation({
     mutationFn: () => {
+      const extraRoleIds = additionalRoleIds.filter((id) => id !== roleId);
       if (isEditing) {
         return updateUser(user!.id, {
           email,
           fullName,
           roleId,
+          additionalRoleIds: extraRoleIds,
           active,
           password: password || undefined,
         });
       }
-      return createUser({ email, fullName, roleId, active, password });
+      return createUser({
+        email,
+        fullName,
+        roleId,
+        additionalRoleIds: extraRoleIds,
+        active,
+        password,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       onClose();
     },
     onError: () =>
-      setError('No se pudo guardar el usuario. Revisá que el email no esté repetido e intentá de nuevo.'),
+      setError(
+        'No se pudo guardar el usuario. Revisá que el email no esté repetido e intentá de nuevo.',
+      ),
   });
+
+  const combinableRoles = (roles ?? []).filter(
+    (r) => COMBINABLE_ROLE_CODES.includes(r.code) && r.id !== roleId,
+  );
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -100,6 +123,35 @@ export function UserFormModal({ user, onClose }: { user?: AppUser; onClose: () =
             </select>
           </div>
 
+          {combinableRoles.length > 0 && (
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">
+                Roles adicionales
+              </label>
+              <div className="flex flex-wrap gap-x-4 gap-y-1">
+                {combinableRoles.map((r) => (
+                  <label key={r.id} className="flex items-center gap-2 text-sm text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={additionalRoleIds.includes(r.id)}
+                      onChange={(e) =>
+                        setAdditionalRoleIds((prev) =>
+                          e.target.checked ? [...prev, r.id] : prev.filter((id) => id !== r.id),
+                        )
+                      }
+                      className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                    />
+                    {r.name}
+                  </label>
+                ))}
+              </div>
+              <p className="mt-1 text-xs text-slate-400">
+                Suman una sección al rol principal. Ej.: alguien de Reuniones que además reporta
+                problemas como QA.
+              </p>
+            </div>
+          )}
+
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700">
               {isEditing ? 'Nueva contraseña (opcional)' : 'Contraseña'}
@@ -139,7 +191,11 @@ export function UserFormModal({ user, onClose }: { user?: AppUser; onClose: () =
               disabled={mutation.isPending}
               className="rounded-lg bg-brand-500 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
             >
-              {mutation.isPending ? 'Guardando...' : isEditing ? 'Guardar cambios' : 'Crear usuario'}
+              {mutation.isPending
+                ? 'Guardando...'
+                : isEditing
+                  ? 'Guardar cambios'
+                  : 'Crear usuario'}
             </button>
           </div>
         </form>
