@@ -1,5 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
+import { AuthenticatedUser } from '../auth/types/authenticated-user.type';
+import { assertWorkItemVisible } from './work-item-access';
 
 export const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 export const MAX_ATTACHMENTS_PER_WORK_ITEM = 10;
@@ -47,9 +49,8 @@ const META_SELECT = { id: true, fileName: true, mimeType: true, size: true, crea
 export class WorkItemAttachmentsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async upload(workItemId: string, file: UploadedImageFile | undefined, userId: string) {
-    const exists = await this.prisma.workItem.count({ where: { id: workItemId } });
-    if (!exists) throw new NotFoundException('Tarea no encontrada');
+  async upload(workItemId: string, file: UploadedImageFile | undefined, user: AuthenticatedUser) {
+    await assertWorkItemVisible(this.prisma, workItemId, user);
 
     if (!file || !file.buffer?.length) {
       throw new BadRequestException('No se recibió ninguna imagen');
@@ -80,13 +81,14 @@ export class WorkItemAttachmentsService {
         mimeType,
         size: file.size,
         data: file.buffer,
-        uploadedById: userId,
+        uploadedById: user.id,
       },
       select: META_SELECT,
     });
   }
 
-  async getContent(workItemId: string, attachmentId: string) {
+  async getContent(workItemId: string, attachmentId: string, user: AuthenticatedUser) {
+    await assertWorkItemVisible(this.prisma, workItemId, user);
     const attachment = await this.prisma.workItemAttachment.findFirst({
       where: { id: attachmentId, workItemId },
     });

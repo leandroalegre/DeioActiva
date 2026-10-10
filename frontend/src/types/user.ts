@@ -5,6 +5,8 @@ export interface AppUser {
   email: string;
   fullName: string;
   role: Role;
+  // Roles que se suman al principal (ej. QA para una usuaria de Reuniones).
+  additionalRoles?: Role[];
   active: boolean;
   createdAt: string;
 }

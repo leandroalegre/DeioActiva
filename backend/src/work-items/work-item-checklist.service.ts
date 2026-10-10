@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { AuthenticatedUser } from '../auth/types/authenticated-user.type';
+import { assertWorkItemVisible } from './work-item-access';
 import { CreateChecklistItemDto, UpdateChecklistItemDto } from './dto/checklist-item.dto';
 
 // Checklist de una tarea: items que los desarrolladores tildan de a uno a medida que los
@@ -22,8 +23,8 @@ export class WorkItemChecklistService {
     return item;
   }
 
-  async list(workItemId: string) {
-    await this.assertWorkItem(workItemId);
+  async list(workItemId: string, user: AuthenticatedUser) {
+    await assertWorkItemVisible(this.prisma, workItemId, user);
     return this.prisma.workItemChecklistItem.findMany({
       where: { workItemId },
       orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],

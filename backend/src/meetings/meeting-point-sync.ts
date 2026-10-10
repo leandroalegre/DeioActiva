@@ -18,6 +18,7 @@ export const POINT_TYPE_TO_WORK_ITEM_TYPE: Record<MeetingPointType, WorkItemType
 };
 
 const WORK_ITEM_STATUS_LABEL: Record<WorkItemStatus, string> = {
+  QA_REPORT: 'QA / Reportes',
   PENDING: 'Pendiente',
   ANALYSIS: 'Análisis',
   PLANNED: 'Planificado en localhost',
@@ -36,7 +37,7 @@ type Db = PrismaClient | Prisma.TransactionClient;
  * - Descartada  -> punto Descartado
  * - En curso (Análisis, Planificado, Desarrollo, Testing, Bloqueado) -> punto En curso
  *   (solo si estaba Pendiente o cerrado; un punto Postergado se respeta)
- * - Vuelve a Pendiente -> los puntos cerrados vuelven a Pendiente
+ * - Vuelve a Pendiente (o a QA / Reportes) -> los puntos cerrados vuelven a Pendiente
  * Cada punto que cambia recibe un avance automatico para que quede el rastro.
  */
 export async function syncMeetingPointsWithWorkItem(
@@ -55,7 +56,7 @@ export async function syncMeetingPointsWithWorkItem(
   } else if (newStatus === WorkItemStatus.DISCARDED) {
     target = MeetingPointStatus.CANCELLED;
     fromStatuses = Object.values(MeetingPointStatus).filter((s) => s !== target);
-  } else if (newStatus === WorkItemStatus.PENDING) {
+  } else if (newStatus === WorkItemStatus.PENDING || newStatus === WorkItemStatus.QA_REPORT) {
     target = MeetingPointStatus.PENDING;
     fromStatuses = closed;
   } else {

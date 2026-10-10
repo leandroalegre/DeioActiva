@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchWorkItems, updateWorkItemStatus } from '../lib/work-items-api';
 import { WORK_ITEM_STATUSES } from '../types/work-item';
@@ -6,11 +7,19 @@ import type { WorkItem, WorkItemStatus } from '../types/work-item';
 import { KanbanColumn } from '../components/kanban/KanbanColumn';
 import { WorkItemFormModal } from '../components/kanban/WorkItemFormModal';
 import { WorkItemDetailModal } from '../components/kanban/WorkItemDetailModal';
+import { QaReportFormModal } from '../components/kanban/QaReportFormModal';
+import { useAuth } from '../app/auth/AuthContext';
+import { isQaRestricted } from '../config/roles';
 
 // Tablero Kanban de Tareas (WorkItem). Reemplaza el placeholder de Fase 1: agregado a
 // pedido despues de la entrega inicial, reutilizando GET/PATCH /work-items ya existentes.
 export function TareasPage() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  // Perfil QA: ve todas las columnas pero solo sus reportes (lo filtra el backend), carga
+  // reportes nuevos en "QA / Reportes" y no mueve ni edita tarjetas.
+  const qa = isQaRestricted(user);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [formModal, setFormModal] = useState<
     { mode: 'closed' } | { mode: 'create' } | { mode: 'edit'; item: WorkItem }
   >({ mode: 'closed' });
@@ -41,7 +50,17 @@ export function TareasPage() {
   // de refrescar la lista), lo sincronizamos con la version mas nueva del mismo item.
   const selected = selectedItem ? (items?.find((i) => i.id === selectedItem.id) ?? selectedItem) : null;
 
+  // /tareas?tarea=<id> abre el detalle de esa tarea (lo usan los avisos de la campanita).
+  const linkedId = searchParams.get('tarea');
+  useEffect(() => {
+    if (!linkedId || !items) return;
+    const found = items.find((i) => i.id === linkedId);
+    if (found) setSelectedItem(found);
+    setSearchParams({}, { replace: true });
+  }, [linkedId, items, setSearchParams]);
+
   function handleDragStart(e: React.DragEvent, item: WorkItem) {
+    if (qa) return;
     setDraggedId(item.id);
     e.dataTransfer.effectAllowed = 'move';
   }
@@ -61,15 +80,16 @@ export function TareasPage() {
         <div>
           <h1 className="text-2xl font-semibold text-slate-800">Tareas</h1>
           <p className="text-sm text-slate-500">
-            Arrastrá una tarjeta para cambiar su estado. Hacé click para ver el detalle y dejar
-            comentarios.
+            {qa
+              ? 'Acá ves los problemas que reportaste y en qué etapa está cada uno. Hacé click en una tarjeta para ver el detalle y comentar.'
+              : 'Arrastrá una tarjeta para cambiar su estado. Hacé click para ver el detalle y dejar comentarios.'}
           </p>
         </div>
         <button
           onClick={() => setFormModal({ mode: 'create' })}
           className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600"
         >
-          + Nueva tarea
+          {qa ? '+ Reportar problema' : '+ Nueva tarea'}
         </button>
       </div>
 
@@ -91,14 +111,18 @@ export function TareasPage() {
               onDragStart={handleDragStart}
               onDrop={handleDrop}
               onCardClick={setSelectedItem}
+              canDrag={!qa}
             />
           ))}
         </div>
       )}
 
-      {formModal.mode === 'create' && (
-        <WorkItemFormModal onClose={() => setFormModal({ mode: 'closed' })} />
-      )}
+      {formModal.mode === 'create' &&
+        (qa ? (
+          <QaReportFormModal onClose={() => setFormModal({ mode: 'closed' })} />
+        ) : (
+          <WorkItemFormModal onClose={() => setFormModal({ mode: 'closed' })} />
+        ))}
       {formModal.mode === 'edit' && (
         <WorkItemFormModal
           workItem={formModal.item}
@@ -109,6 +133,7 @@ export function TareasPage() {
         <WorkItemDetailModal
           item={selected}
           onClose={() => setSelectedItem(null)}
+          readOnly={qa}
           onEdit={(item) => {
             setSelectedItem(null);
             setFormModal({ mode: 'edit', item });

@@ -17,6 +17,8 @@ import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../auth/types/authenticated-user.type';
+import { ScopedRolesAllowed } from '../common/decorators/roles.decorator';
+import { ROLE_CODES } from '../common/constants/roles.constant';
 import { CreateChecklistItemDto, UpdateChecklistItemDto } from './dto/checklist-item.dto';
 import { WorkItemChecklistService } from './work-item-checklist.service';
 import {
@@ -31,9 +33,14 @@ import {
 export class WorkItemChecklistController {
   constructor(private readonly checklist: WorkItemChecklistService) {}
 
+  // El perfil QA puede ver el checklist de sus tarjetas, pero no tildar ni editar.
+  @ScopedRolesAllowed(ROLE_CODES.QA)
   @Get()
-  list(@Param('workItemId', ParseUUIDPipe) workItemId: string) {
-    return this.checklist.list(workItemId);
+  list(
+    @Param('workItemId', ParseUUIDPipe) workItemId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.checklist.list(workItemId, user);
   }
 
   @Post()
@@ -70,6 +77,8 @@ export class WorkItemChecklistController {
 export class WorkItemAttachmentsController {
   constructor(private readonly attachments: WorkItemAttachmentsService) {}
 
+  // El perfil QA adjunta capturas a sus propios reportes (y las puede ver), pero no borrar.
+  @ScopedRolesAllowed(ROLE_CODES.QA)
   @Post()
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -88,16 +97,18 @@ export class WorkItemAttachmentsController {
     @UploadedFile() file: UploadedImageFile | undefined,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.attachments.upload(workItemId, file, user.id);
+    return this.attachments.upload(workItemId, file, user);
   }
 
+  @ScopedRolesAllowed(ROLE_CODES.QA)
   @Get(':attachmentId')
   async content(
     @Param('workItemId', ParseUUIDPipe) workItemId: string,
     @Param('attachmentId', ParseUUIDPipe) attachmentId: string,
     @Res() res: Response,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    const attachment = await this.attachments.getContent(workItemId, attachmentId);
+    const attachment = await this.attachments.getContent(workItemId, attachmentId, user);
     res.setHeader('Content-Type', attachment.mimeType);
     res.setHeader('Content-Length', String(attachment.data.length));
     res.setHeader('Cache-Control', 'private, max-age=86400');

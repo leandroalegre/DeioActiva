@@ -1,13 +1,19 @@
 import { useAuth } from '../../app/auth/AuthContext';
+import { NotificationsBell } from './NotificationsBell';
 
 export function Topbar() {
   const { user, logout } = useAuth();
 
   return (
     <header className="flex h-16 items-center justify-end gap-4 border-b border-slate-200 bg-white px-6">
+      <NotificationsBell />
       <div className="text-right">
         <p className="text-sm font-medium text-slate-800">{user?.fullName}</p>
-        <p className="text-xs text-slate-500">{user?.role.name}</p>
+        <p className="text-xs text-slate-500">
+          {[user?.role.name, ...(user?.additionalRoles ?? []).map((r) => r.name)]
+            .filter(Boolean)
+            .join(' + ')}
+        </p>
       </div>
       <button
         onClick={() => logout()}

@@ -32,10 +32,13 @@ export function WorkItemDetailModal({
   item,
   onClose,
   onEdit,
+  readOnly = false,
 }: {
   item: WorkItem;
   onClose: () => void;
   onEdit: (item: WorkItem) => void;
+  // Perfil QA: ve su reporte y comenta, pero no edita la tarea ni el checklist.
+  readOnly?: boolean;
 }) {
   const queryClient = useQueryClient();
   const [text, setText] = useState('');
@@ -74,6 +77,7 @@ export function WorkItemDetailModal({
   const type = WORK_ITEM_TYPES.find((t) => t.value === item.type);
   const priority = WORK_ITEM_PRIORITIES.find((p) => p.value === item.priority);
   const status = WORK_ITEM_STATUSES.find((s) => s.value === item.status);
+  const suggested = WORK_ITEM_PRIORITIES.find((p) => p.value === item.suggestedPriority);
 
   function formatDate(value?: string | null) {
     if (!value) return null;
@@ -87,12 +91,14 @@ export function WorkItemDetailModal({
         <div className="mb-1 flex items-start justify-between gap-3">
           <h2 className="text-lg font-semibold text-slate-800">{item.title}</h2>
           <div className="flex shrink-0 items-center gap-2">
-            <button
-              onClick={() => onEdit(item)}
-              className="rounded px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50"
-            >
-              Editar
-            </button>
+            {!readOnly && (
+              <button
+                onClick={() => onEdit(item)}
+                className="rounded px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50"
+              >
+                Editar
+              </button>
+            )}
             <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
               ✕
             </button>
@@ -104,7 +110,9 @@ export function WorkItemDetailModal({
             {type?.label ?? item.type}
           </span>
           {priority && (
-            <span className={`rounded border px-1.5 py-0.5 text-[11px] font-medium ${priority.color}`}>
+            <span
+              className={`rounded border px-1.5 py-0.5 text-[11px] font-medium ${priority.color}`}
+            >
               {priority.label}
             </span>
           )}
@@ -117,6 +125,22 @@ export function WorkItemDetailModal({
           <div>
             <dt className="inline font-medium text-slate-600">Módulo: </dt>
             <dd className="inline">{item.module?.name}</dd>
+          </div>
+          {item.establishment && (
+            <div>
+              <dt className="inline font-medium text-slate-600">Establecimiento: </dt>
+              <dd className="inline">{item.establishment}</dd>
+            </div>
+          )}
+          {suggested && (
+            <div>
+              <dt className="inline font-medium text-slate-600">Severidad sugerida: </dt>
+              <dd className="inline">{suggested.label}</dd>
+            </div>
+          )}
+          <div>
+            <dt className="inline font-medium text-slate-600">Reportó: </dt>
+            <dd className="inline">{item.createdBy?.fullName}</dd>
           </div>
           {item.milestone && (
             <div>
@@ -157,18 +181,18 @@ export function WorkItemDetailModal({
           </div>
         )}
 
-        <WorkItemChecklistSection item={item} />
+        <WorkItemChecklistSection item={item} readOnly={readOnly} />
 
-        <WorkItemImagesSection item={item} />
+        <WorkItemImagesSection item={item} canDelete={!readOnly} />
 
         <div className="border-t border-slate-100 pt-4">
           <h3 className="mb-2 text-sm font-semibold text-slate-700">
             Comentarios {comments && comments.length > 0 ? `(${comments.length})` : ''}
           </h3>
           <p className="mb-3 text-xs text-slate-400">
-            Contá acá cómo se implementó o completó la tarea, para que quede el porqué de su
-            estado actual. Si el comentario deja un pendiente puntual, ponele una fecha de
-            seguimiento y marcalo resuelto cuando lo atiendas.
+            {readOnly
+              ? 'Sumá acá cualquier dato que ayude a resolverlo. Cuando el reporte llegue a Completado, probalo y contá si quedó bien o si sigue fallando.'
+              : 'Contá acá cómo se implementó o completó la tarea, para que quede el porqué de su estado actual. Si el comentario deja un pendiente puntual, ponele una fecha de seguimiento y marcalo resuelto cuando lo atiendas.'}
           </p>
 
           {isLoading && <p className="text-xs text-slate-400">Cargando comentarios...</p>}
@@ -196,21 +220,27 @@ export function WorkItemDetailModal({
                     <div className="mt-1.5 flex items-center gap-2">
                       <span
                         className={`text-[11px] font-medium ${
-                          c.resolved ? 'text-slate-400 line-through' : overdue ? 'text-red-600' : 'text-slate-500'
+                          c.resolved
+                            ? 'text-slate-400 line-through'
+                            : overdue
+                              ? 'text-red-600'
+                              : 'text-slate-500'
                         }`}
                       >
                         {overdue ? '🚩 ' : '📅 '}
                         Seguimiento: {formatShortDate(c.dueDate)}
                       </span>
-                      <button
-                        onClick={() =>
-                          resolveMutation.mutate({ id: c.id, resolved: !c.resolved })
-                        }
-                        disabled={resolveMutation.isPending}
-                        className="text-[11px] font-medium text-brand-600 hover:underline disabled:opacity-60"
-                      >
-                        {c.resolved ? 'Reabrir' : 'Marcar resuelto'}
-                      </button>
+                      {!readOnly && (
+                        <button
+                          onClick={() =>
+                            resolveMutation.mutate({ id: c.id, resolved: !c.resolved })
+                          }
+                          disabled={resolveMutation.isPending}
+                          className="text-[11px] font-medium text-brand-600 hover:underline disabled:opacity-60"
+                        >
+                          {c.resolved ? 'Reabrir' : 'Marcar resuelto'}
+                        </button>
+                      )}
                     </div>
                   )}
                 </li>
@@ -223,20 +253,26 @@ export function WorkItemDetailModal({
               value={text}
               onChange={(e) => setText(e.target.value)}
               rows={3}
-              placeholder="Ej: se implementó usando X, quedó pendiente Y..."
+              placeholder={
+                readOnly
+                  ? 'Ej: lo probé en el establecimiento X y ya funciona'
+                  : 'Ej: se implementó usando X, quedó pendiente Y...'
+              }
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
-            <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600">
-                Fecha de seguimiento (opcional)
-              </label>
-              <input
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-              />
-            </div>
+            {!readOnly && (
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-600">
+                  Fecha de seguimiento (opcional)
+                </label>
+                <input
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                />
+              </div>
+            )}
             {error && <p className="text-sm text-red-600">{error}</p>}
             <div className="flex justify-end">
               <button

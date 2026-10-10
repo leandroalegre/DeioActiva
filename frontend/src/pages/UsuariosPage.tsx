@@ -4,12 +4,13 @@ import { fetchUsers } from '../lib/users-api';
 import { UserFormModal } from '../components/users/UserFormModal';
 import { useAuth } from '../app/auth/AuthContext';
 import type { AppUser } from '../types/user';
+import { hasAnyRole } from '../config/roles';
 
 const ADMIN_ROLES = ['super_admin', 'admin'];
 
 export function UsuariosPage() {
   const { user: currentUser } = useAuth();
-  const isAdmin = Boolean(currentUser && ADMIN_ROLES.includes(currentUser.role.code));
+  const isAdmin = Boolean(currentUser && hasAnyRole(currentUser, ADMIN_ROLES));
 
   const { data: users, isLoading, isError } = useQuery({
     queryKey: ['users'],
@@ -72,6 +73,14 @@ export function UsuariosPage() {
                     <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
                       {u.role.name}
                     </span>
+                    {(u.additionalRoles ?? []).map((r) => (
+                      <span
+                        key={r.id}
+                        className="ml-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700"
+                      >
+                        + {r.name}
+                      </span>
+                    ))}
                   </td>
                   <td className="px-4 py-3">
                     {u.active ? (

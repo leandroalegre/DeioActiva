@@ -119,11 +119,32 @@ Los guards son centralizados (`JwtAuthGuard` + `RolesGuard`, aplicados globalmen
 repetir verificaciones de rol en cada controller. `super_admin` siempre tiene acceso
 completo. Un endpoint público (login, refresh, health) se marca con `@Public()`.
 
-**Roles acotados** (`SCOPED_ROLE_CODES`, hoy solo `reuniones`): por defecto el
+**Roles acotados** (`SCOPED_ROLE_CODES`: `reuniones` y `qa`): por defecto el
 `RolesGuard` les rechaza *cualquier* endpoint, aunque no tenga `@Roles(...)`; solo pasan en
 los marcados con `@ScopedRolesAllowed('reuniones')` (el controller de Reuniones y
 `GET /auth/me`). En el frontend, `config/roles.ts` (`SCOPED_ROLE_PATHS`) oculta el resto del
-menú y redirige cualquier otra ruta a `/reuniones`.
+menú y redirige cualquier otra ruta a la sección del perfil.
+
+**Roles adicionales** (`UserAdditionalRole`): además del rol principal, un usuario puede
+tener roles extra (se eligen en Usuarios → Editar). El guard trabaja con la lista completa
+(`user.roles`): un usuario se trata como acotado solo si *todos* sus roles son acotados, y
+pasa en un endpoint si alguno de sus roles está habilitado. Ej.: Reuniones + QA ve las dos
+secciones.
+
+## QA / Reportes
+
+Perfil `qa` para quienes prueban el sistema y reportan problemas:
+
+- Los reportes entran siempre en la columna **QA / Reportes** (`WorkItemStatus.QA_REPORT`),
+  como Error y con prioridad Media. Guardan el establecimiento y la severidad sugerida; la
+  prioridad real la decide el equipo al hacer el triage (moviendo la tarjeta a Pendiente).
+- Si el reporte no indica módulo, cae en el módulo "Reportes QA" (se crea solo).
+- El usuario QA ve todas las columnas pero solo las tarjetas que cargó; puede comentarlas y
+  adjuntar capturas, pero no moverlas, editarlas, cambiar prioridad ni borrarlas. Una
+  tarjeta ajena le responde 404.
+- Cuando una tarjeta creada por alguien con rol QA pasa a Completado, le llega un aviso
+  (campanita, `Notification`) para que valide la corrección.
+- Un admin o developer que además tenga QA trabaja normalmente (sin estas restricciones).
 
 ## Reuniones
 

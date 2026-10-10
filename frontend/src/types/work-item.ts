@@ -1,6 +1,7 @@
 export type WorkItemType = 'ERROR' | 'REQUIREMENT' | 'IMPROVEMENT' | 'TASK' | 'TEST' | 'ANALYSIS';
 
 export type WorkItemStatus =
+  | 'QA_REPORT'
   | 'PENDING'
   | 'ANALYSIS'
   | 'PLANNED'
@@ -42,6 +43,9 @@ export interface WorkItem {
   blocked: boolean;
   blockReason?: string | null;
   versionTarget?: string | null;
+  // Reportes QA: establecimiento y severidad sugerida por quien reporta.
+  establishment?: string | null;
+  suggestedPriority?: WorkItemPriority | null;
   milestoneId?: string | null;
   milestone?: { id: string; name: string } | null;
   createdAt: string;
@@ -83,6 +87,8 @@ export interface ModuleTreeNode {
 }
 
 export const WORK_ITEM_STATUSES: { value: WorkItemStatus; label: string }[] = [
+  // Entrada de los reportes del perfil QA: el equipo los prioriza y los pasa a Pendiente.
+  { value: 'QA_REPORT', label: 'QA / Reportes' },
   { value: 'PENDING', label: 'Pendiente' },
   { value: 'ANALYSIS', label: 'Análisis' },
   { value: 'PLANNED', label: 'Planificado en localhost' },

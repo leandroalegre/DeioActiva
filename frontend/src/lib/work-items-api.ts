@@ -25,7 +25,8 @@ export async function fetchWorkItems(): Promise<WorkItem[]> {
 }
 
 export interface CreateWorkItemPayload {
-  moduleId: string;
+  // Opcional solo para el perfil QA (sin modulo, el reporte cae en "Reportes QA").
+  moduleId?: string;
   type: WorkItemType;
   title: string;
   description?: string;
@@ -34,6 +35,8 @@ export interface CreateWorkItemPayload {
   plannedEnd?: string;
   dueDate?: string;
   milestoneId?: string | null;
+  establishment?: string;
+  suggestedPriority?: WorkItemPriority;
   // Solo al crear: despues el checklist se gestiona con los endpoints de /checklist.
   checklist?: string[];
 }

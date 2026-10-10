@@ -6,6 +6,8 @@ import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../auth/types/authenticated-user.type';
+import { ScopedRolesAllowed } from '../common/decorators/roles.decorator';
+import { ROLE_CODES } from '../common/constants/roles.constant';
 
 class WorkItemIdQueryDto {
   @IsUUID()
@@ -18,14 +20,17 @@ class WorkItemIdQueryDto {
 export class CommentsController {
   constructor(private readonly commentsService: CommentsService) {}
 
+  // El perfil QA lee y comenta sus propias tarjetas (ver assertWorkItemVisible).
+  @ScopedRolesAllowed(ROLE_CODES.QA)
   @Get()
-  findByWorkItem(@Query() query: WorkItemIdQueryDto) {
-    return this.commentsService.findByWorkItem(query.workItemId);
+  findByWorkItem(@Query() query: WorkItemIdQueryDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.commentsService.findByWorkItem(query.workItemId, user);
   }
 
+  @ScopedRolesAllowed(ROLE_CODES.QA)
   @Post()
   create(@Body() dto: CreateCommentDto, @CurrentUser() user: AuthenticatedUser) {
-    return this.commentsService.create(dto, user.id);
+    return this.commentsService.create(dto, user);
   }
 
   @Patch(':id')

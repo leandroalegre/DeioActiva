@@ -10,6 +10,7 @@ import type { WorkItem, WorkItemStatus } from '../types/work-item';
 // tiempo simple agrupada por modulo.
 
 const STATUS_COLOR: Record<WorkItemStatus, string> = {
+  QA_REPORT: 'bg-rose-400',
   PENDING: 'bg-slate-400',
   ANALYSIS: 'bg-purple-400',
   PLANNED: 'bg-indigo-400',

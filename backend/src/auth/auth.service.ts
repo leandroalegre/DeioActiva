@@ -3,24 +3,10 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { PrismaService } from '../common/prisma/prisma.service';
-import { AuthenticatedUser } from './types/authenticated-user.type';
+import { AUTH_USER_INCLUDE, toAuthenticatedUser } from './types/authenticated-user.type';
 
 function hashToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex');
-}
-
-function toAuthenticatedUser(user: {
-  id: string;
-  email: string;
-  fullName: string;
-  role: { id: string; code: string; name: string };
-}): AuthenticatedUser {
-  return {
-    id: user.id,
-    email: user.email,
-    fullName: user.fullName,
-    role: { id: user.role.id, code: user.role.code, name: user.role.name },
-  };
 }
 
 @Injectable()
@@ -59,7 +45,7 @@ export class AuthService {
   async login(email: string, password: string, meta?: { userAgent?: string; ipAddress?: string }) {
     const user = await this.prisma.user.findUnique({
       where: { email },
-      include: { role: true },
+      include: AUTH_USER_INCLUDE,
     });
 
     if (!user || !user.active) {
@@ -79,7 +65,7 @@ export class AuthService {
     const tokenHash = hashToken(refreshToken);
     const stored = await this.prisma.refreshToken.findFirst({
       where: { tokenHash },
-      include: { user: { include: { role: true } } },
+      include: { user: { include: AUTH_USER_INCLUDE } },
     });
 
     if (!stored || stored.revoked || stored.expiresAt < new Date()) {
@@ -113,7 +99,7 @@ export class AuthService {
   async me(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: { role: true },
+      include: AUTH_USER_INCLUDE,
     });
     if (!user) {
       throw new UnauthorizedException();

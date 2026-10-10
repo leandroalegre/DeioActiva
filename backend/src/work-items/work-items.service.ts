@@ -1,5 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { HistoryAction, Prisma, WorkItemPriority } from '@prisma/client';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  HistoryAction,
+  Prisma,
+  WorkItemPriority,
+  WorkItemStatus,
+  WorkItemType,
+} from '@prisma/client';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { HistoryService } from '../history/history.service';
 import { CreateWorkItemDto } from './dto/create-work-item.dto';
@@ -7,6 +13,13 @@ import { UpdateWorkItemDto } from './dto/update-work-item.dto';
 import { QueryWorkItemsDto } from './dto/query-work-items.dto';
 import { PaginatedResult } from '../common/dto/pagination-query.dto';
 import { syncMeetingPointsWithWorkItem } from '../meetings/meeting-point-sync';
+import { AuthenticatedUser } from '../auth/types/authenticated-user.type';
+import { isQaRestricted } from '../common/constants/roles.constant';
+import { NotificationsService } from '../notifications/notifications.service';
+
+// Modulo donde caen los reportes QA que no indican modulo. Se crea la primera vez que hace falta.
+const QA_MODULE_SLUG = 'reportes-qa';
+const QA_MODULE_NAME = 'Reportes QA';
 
 const INCLUDE = {
   module: { select: { id: true, name: true, slug: true } },
@@ -34,9 +47,13 @@ export class WorkItemsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly history: HistoryService,
+    private readonly notifications: NotificationsService,
   ) {}
 
-  async findAll(query: QueryWorkItemsDto): Promise<PaginatedResult<unknown>> {
+  async findAll(
+    query: QueryWorkItemsDto,
+    user?: AuthenticatedUser,
+  ): Promise<PaginatedResult<unknown>> {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 20;
 
@@ -46,6 +63,8 @@ export class WorkItemsService {
       status: query.status,
       type: query.type,
       priority: query.priority,
+      // El perfil QA ve todas las columnas, pero solo con las tarjetas que cargo el mismo.
+      ...(isQaRestricted(user) ? { createdById: user!.id } : {}),
     };
     // Prisma ignora las claves con valor undefined, asi que no hace falta armar el objeto a mano.
 
@@ -63,30 +82,75 @@ export class WorkItemsService {
     return { data, total, page, pageSize };
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user?: AuthenticatedUser) {
     const workItem = await this.prisma.workItem.findUnique({ where: { id }, include: INCLUDE });
-    if (!workItem) {
+    // A un usuario QA, una tarjeta ajena le responde igual que una inexistente.
+    if (!workItem || (isQaRestricted(user) && workItem.createdById !== user!.id)) {
       throw new NotFoundException('Tarea no encontrada');
     }
     return workItem;
   }
 
-  async create(dto: CreateWorkItemDto, createdById: string) {
+  private async qaModuleId(createdById: string): Promise<string> {
+    const existing = await this.prisma.module.findUnique({ where: { slug: QA_MODULE_SLUG } });
+    if (existing) return existing.id;
+    const created = await this.prisma.module.create({
+      data: {
+        name: QA_MODULE_NAME,
+        slug: QA_MODULE_SLUG,
+        description: 'Reportes cargados por QA sin modulo asignado. Reasignar al hacer el triage.',
+        order: 999,
+        createdById,
+      },
+    });
+    return created.id;
+  }
+
+  async create(dto: CreateWorkItemDto, user: AuthenticatedUser) {
+    const createdById = user.id;
+    const qa = isQaRestricted(user);
+
+    if (!dto.moduleId && !qa) {
+      throw new BadRequestException('Elegí un módulo para la tarea');
+    }
+    const moduleId = dto.moduleId ?? (await this.qaModuleId(createdById));
+
+    // Un reporte QA siempre entra en la columna "QA / Reportes", como Error, con prioridad
+    // Media: el equipo decide la prioridad real, el estado y a quien se asigna al hacer el
+    // triage. Lo que mande el formulario para esos campos se ignora.
+    const data: Prisma.WorkItemUncheckedCreateInput = qa
+      ? {
+          moduleId,
+          type: WorkItemType.ERROR,
+          status: WorkItemStatus.QA_REPORT,
+          title: dto.title,
+          description: dto.description,
+          priority: WorkItemPriority.MEDIUM,
+          establishment: dto.establishment?.trim() || null,
+          suggestedPriority: dto.suggestedPriority,
+          createdById,
+        }
+      : {
+          moduleId,
+          type: dto.type,
+          title: dto.title,
+          description: dto.description,
+          priority: dto.priority ?? WorkItemPriority.MEDIUM,
+          assignedToId: dto.assignedToId,
+          plannedStart: toDateOrUndefined(dto.plannedStart),
+          plannedEnd: toDateOrUndefined(dto.plannedEnd),
+          dueDate: toDateOrUndefined(dto.dueDate),
+          progressPercentage: dto.progressPercentage ?? 0,
+          versionTarget: dto.versionTarget,
+          milestoneId: dto.milestoneId,
+          establishment: dto.establishment?.trim() || undefined,
+          suggestedPriority: dto.suggestedPriority,
+          createdById,
+        };
+
     const workItem = await this.prisma.workItem.create({
       data: {
-        moduleId: dto.moduleId,
-        type: dto.type,
-        title: dto.title,
-        description: dto.description,
-        priority: dto.priority ?? WorkItemPriority.MEDIUM,
-        assignedToId: dto.assignedToId,
-        plannedStart: toDateOrUndefined(dto.plannedStart),
-        plannedEnd: toDateOrUndefined(dto.plannedEnd),
-        dueDate: toDateOrUndefined(dto.dueDate),
-        progressPercentage: dto.progressPercentage ?? 0,
-        versionTarget: dto.versionTarget,
-        milestoneId: dto.milestoneId,
-        createdById,
+        ...data,
         checklistItems: {
           create: (dto.checklist ?? [])
             .map((text) => text.trim())
@@ -137,6 +201,11 @@ export class WorkItemsService {
       await syncMeetingPointsWithWorkItem(this.prisma, id, workItem.status, userId);
     }
 
+    // Si la reporto alguien de QA y llego a Completado, se le avisa para que valide la correccion.
+    if (statusChanged && workItem.status === WorkItemStatus.COMPLETED) {
+      await this.notifications.notifyQaReporterOfCompletion(workItem, userId);
+    }
+
     await this.history.record({
       workItemId: id,
       userId,
@@ -164,6 +233,7 @@ export class WorkItemsService {
       this.prisma.workItemHistory.deleteMany({ where: { workItemId: id } }),
       this.prisma.workItemChecklistItem.deleteMany({ where: { workItemId: id } }),
       this.prisma.workItemAttachment.deleteMany({ where: { workItemId: id } }),
+      this.prisma.notification.deleteMany({ where: { workItemId: id } }),
       this.prisma.workItem.delete({ where: { id } }),
     ]);
   }

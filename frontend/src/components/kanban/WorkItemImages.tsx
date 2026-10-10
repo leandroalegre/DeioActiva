@@ -41,7 +41,8 @@ function Thumbnail({
   workItemId: string;
   attachment: WorkItemAttachment;
   onOpen: (url: string, attachment: WorkItemAttachment) => void;
-  onDelete: () => void;
+  // Sin onDelete (ej. perfil QA) la miniatura no ofrece quitar la imagen.
+  onDelete?: () => void;
   deleting: boolean;
 }) {
   const { url, isError } = useImageUrl(workItemId, attachment.id);
@@ -63,7 +64,7 @@ function Thumbnail({
           {isError ? 'No se pudo cargar' : 'Cargando...'}
         </div>
       )}
-      {!confirm ? (
+      {!onDelete ? null : !confirm ? (
         <button
           type="button"
           onClick={() => setConfirm(true)}
@@ -146,7 +147,13 @@ export function ImageLightbox({
 }
 
 // Seccion "Imagenes" del detalle de la tarea: ver, agregar (boton o Ctrl+V) y quitar.
-export function WorkItemImagesSection({ item }: { item: WorkItem }) {
+export function WorkItemImagesSection({
+  item,
+  canDelete = true,
+}: {
+  item: WorkItem;
+  canDelete?: boolean;
+}) {
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -236,7 +243,7 @@ export function WorkItemImagesSection({ item }: { item: WorkItem }) {
               workItemId={item.id}
               attachment={a}
               onOpen={(url, att) => setPreview({ url, fileName: att.fileName })}
-              onDelete={() => deleteMutation.mutate(a.id)}
+              onDelete={canDelete ? () => deleteMutation.mutate(a.id) : undefined}
               deleting={deleteMutation.isPending}
             />
           ))}
