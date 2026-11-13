@@ -75,6 +75,8 @@ export function WorkItemFormModal({
   const [plannedEnd, setPlannedEnd] = useState(workItem?.plannedEnd?.slice(0, 10) ?? '');
   const [dueDate, setDueDate] = useState(workItem?.dueDate?.slice(0, 10) ?? '');
   const [milestoneId, setMilestoneId] = useState(workItem?.milestoneId ?? '');
+  // Las tareas nuevas del equipo nacen sin tildar; los reportes de QA ya vienen tildados.
+  const [visibleToQa, setVisibleToQa] = useState(workItem?.visibleToQa ?? false);
   const [error, setError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   // Solo en alta: checklist e imagenes. En edicion se gestionan desde el detalle de la tarea.
@@ -109,6 +111,7 @@ export function WorkItemFormModal({
         plannedEnd: plannedEnd || undefined,
         dueDate: dueDate || undefined,
         milestoneId: milestoneId || null,
+        visibleToQa,
         ...(isEditing ? { status } : {}),
       };
       if (isEditing) {
@@ -264,6 +267,21 @@ export function WorkItemFormModal({
               progreso.
             </p>
           </div>
+
+          <label className="flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+            <input
+              type="checkbox"
+              checked={visibleToQa}
+              onChange={(e) => setVisibleToQa(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-500 focus:ring-brand-500"
+            />
+            <span className="text-sm text-slate-700">
+              Visible para QA
+              <span className="block text-xs text-slate-400">
+                El perfil QA la ve en su tablero (sin poder editarla) y puede comentar.
+              </span>
+            </span>
+          </label>
 
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700">

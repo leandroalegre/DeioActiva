@@ -3,6 +3,7 @@ import { WorkItemArea, WorkItemPriority, WorkItemType } from '@prisma/client';
 import {
   ArrayMaxSize,
   IsArray,
+  IsBoolean,
   IsDateString,
   IsEnum,
   IsInt,
@@ -102,6 +103,12 @@ export class CreateWorkItemDto {
   @IsOptional()
   @IsEnum(WorkItemPriority)
   suggestedPriority?: WorkItemPriority;
+
+  // Tilde "Visible para QA". Para los reportes del perfil QA se ignora: siempre nacen tildados.
+  @ApiPropertyOptional({ description: 'Si todo el perfil QA ve la tarjeta en su tablero' })
+  @IsOptional()
+  @IsBoolean()
+  visibleToQa?: boolean;
 
   // Items tildables de la tarea (uno por linea en el formulario). Solo se usa al crear: despues
   // se gestionan con /work-items/:id/checklist (UpdateWorkItemDto lo omite).

@@ -196,6 +196,9 @@ model WorkItem {
   // sugiere quien reporta (la prioridad real la decide el equipo al hacer el triage).
   establishment      String?
   suggestedPriority  WorkItemPriority?
+  // Tilde "Visible para QA": todo el perfil QA ve la tarjeta (solo lectura, con comentarios)
+  // aunque no la haya cargado. Los reportes de QA nacen tildados; el resto, sin tildar.
+  visibleToQa        Boolean          @default(false)
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
 
