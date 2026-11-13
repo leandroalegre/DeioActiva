@@ -8,6 +8,7 @@ import { KanbanColumn } from '../components/kanban/KanbanColumn';
 import { WorkItemFormModal } from '../components/kanban/WorkItemFormModal';
 import { WorkItemDetailModal } from '../components/kanban/WorkItemDetailModal';
 import { QaReportFormModal } from '../components/kanban/QaReportFormModal';
+import { QaProgressSummary } from '../components/kanban/QaProgressSummary';
 import { useAuth } from '../app/auth/AuthContext';
 import { isQaRestricted } from '../config/roles';
 
@@ -16,7 +17,8 @@ import { isQaRestricted } from '../config/roles';
 export function TareasPage() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  // Perfil QA: ve todas las columnas pero solo sus reportes (lo filtra el backend), carga
+  // Perfil QA: ve todas las columnas pero solo sus reportes y las tarjetas tildadas "Visible
+  // para QA" (lo filtra el backend), carga
   // reportes nuevos en "QA / Reportes" y no mueve ni edita tarjetas.
   const qa = isQaRestricted(user);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -26,7 +28,11 @@ export function TareasPage() {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<WorkItem | null>(null);
 
-  const { data: items, isLoading, isError } = useQuery({
+  const {
+    data: items,
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: ['work-items'],
     queryFn: fetchWorkItems,
   });
@@ -55,7 +61,9 @@ export function TareasPage() {
 
   // Si el detalle abierto quedo desactualizado (por ej. despues de agregar un comentario o
   // de refrescar la lista), lo sincronizamos con la version mas nueva del mismo item.
-  const selected = selectedItem ? (items?.find((i) => i.id === selectedItem.id) ?? selectedItem) : null;
+  const selected = selectedItem
+    ? (items?.find((i) => i.id === selectedItem.id) ?? selectedItem)
+    : null;
 
   // /tareas?tarea=<id> abre el detalle de esa tarea (lo usan los avisos de la campanita).
   const linkedId = searchParams.get('tarea');
@@ -88,7 +96,7 @@ export function TareasPage() {
           <h1 className="text-2xl font-semibold text-slate-800">Tareas</h1>
           <p className="text-sm text-slate-500">
             {qa
-              ? 'Acá ves los problemas que reportaste y en qué etapa está cada uno. Hacé click en una tarjeta para ver el detalle y comentar.'
+              ? 'Acá ves los reportes de QA y las tareas que el equipo te muestra, y en qué etapa está cada una. Hacé click en una tarjeta para ver el detalle y comentar.'
               : 'Arrastrá una tarjeta para cambiar su estado. Hacé click para ver el detalle y dejar comentarios.'}
           </p>
         </div>
@@ -123,6 +131,12 @@ export function TareasPage() {
         </p>
       )}
 
+      {qa && !isLoading && !isError && (
+        <div className="mt-4">
+          <QaProgressSummary items={filteredItems ?? []} userId={user?.id} />
+        </div>
+      )}
+
       {!isLoading && !isError && (
         <div className="flex flex-1 gap-6 overflow-x-auto pb-2">
           {WORK_ITEM_STATUSES.map((s) => (
@@ -135,6 +149,7 @@ export function TareasPage() {
               onDrop={handleDrop}
               onCardClick={setSelectedItem}
               canDrag={!qa}
+              showQaFlag={!qa}
             />
           ))}
         </div>

@@ -16,6 +16,7 @@ import { PaginatedResult } from '../common/dto/pagination-query.dto';
 import { syncMeetingPointsWithWorkItem } from '../meetings/meeting-point-sync';
 import { AuthenticatedUser } from '../auth/types/authenticated-user.type';
 import { isQaRestricted } from '../common/constants/roles.constant';
+import { isVisibleToQaUser, qaVisibilityWhere } from './work-item-access';
 import { NotificationsService } from '../notifications/notifications.service';
 
 // Modulo donde caen los reportes QA que no indican modulo. Se crea la primera vez que hace falta.
@@ -64,8 +65,9 @@ export class WorkItemsService {
       status: query.status,
       type: query.type,
       priority: query.priority,
-      // El perfil QA ve todas las columnas, pero solo con las tarjetas que cargo el mismo.
-      ...(isQaRestricted(user) ? { createdById: user!.id } : {}),
+      // El perfil QA ve todas las columnas, pero solo con sus tarjetas y las tildadas
+      // "Visible para QA".
+      ...(isQaRestricted(user) ? qaVisibilityWhere(user!) : {}),
     };
     // Prisma ignora las claves con valor undefined, asi que no hace falta armar el objeto a mano.
 
@@ -86,7 +88,7 @@ export class WorkItemsService {
   async findOne(id: string, user?: AuthenticatedUser) {
     const workItem = await this.prisma.workItem.findUnique({ where: { id }, include: INCLUDE });
     // A un usuario QA, una tarjeta ajena le responde igual que una inexistente.
-    if (!workItem || (isQaRestricted(user) && workItem.createdById !== user!.id)) {
+    if (!workItem || (isQaRestricted(user) && !isVisibleToQaUser(workItem, user!))) {
       throw new NotFoundException('Tarea no encontrada');
     }
     return workItem;
@@ -130,6 +132,7 @@ export class WorkItemsService {
           priority: WorkItemPriority.MEDIUM,
           establishment: dto.establishment?.trim() || null,
           suggestedPriority: dto.suggestedPriority,
+          visibleToQa: true,
           createdById,
         }
       : {
@@ -148,6 +151,7 @@ export class WorkItemsService {
           milestoneId: dto.milestoneId,
           establishment: dto.establishment?.trim() || undefined,
           suggestedPriority: dto.suggestedPriority,
+          visibleToQa: dto.visibleToQa ?? false,
           createdById,
         };
 

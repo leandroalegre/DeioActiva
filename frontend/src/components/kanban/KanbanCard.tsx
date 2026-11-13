@@ -16,11 +16,13 @@ export function KanbanCard({
   onDragStart,
   onClick,
   draggable = true,
+  showQaFlag = false,
 }: {
   item: WorkItem;
   onDragStart: (e: React.DragEvent, item: WorkItem) => void;
   onClick: (item: WorkItem) => void;
   draggable?: boolean;
+  showQaFlag?: boolean;
 }) {
   const priority = WORK_ITEM_PRIORITIES.find((p) => p.value === item.priority);
   const type = WORK_ITEM_TYPES.find((t) => t.value === item.type);
@@ -66,6 +68,14 @@ export function KanbanCard({
                 Sin fecha
               </span>
             )}
+          {showQaFlag && item.visibleToQa && (
+            <span
+              className="rounded border border-violet-200 bg-violet-50 px-1.5 py-0.5 text-[11px] font-medium text-violet-700"
+              title="Visible para QA: el perfil QA ve esta tarjeta en su tablero"
+            >
+              QA
+            </span>
+          )}
           {priority && (
             <span
               className={`rounded border px-1.5 py-0.5 text-[11px] font-medium ${priority.color}`}

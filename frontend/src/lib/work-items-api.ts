@@ -39,6 +39,7 @@ export interface CreateWorkItemPayload {
   milestoneId?: string | null;
   establishment?: string;
   suggestedPriority?: WorkItemPriority;
+  visibleToQa?: boolean;
   // Solo al crear: despues el checklist se gestiona con los endpoints de /checklist.
   checklist?: string[];
 }
@@ -52,7 +53,10 @@ export async function createWorkItem(payload: CreateWorkItemPayload): Promise<Wo
   return data;
 }
 
-export async function updateWorkItem(id: string, payload: UpdateWorkItemPayload): Promise<WorkItem> {
+export async function updateWorkItem(
+  id: string,
+  payload: UpdateWorkItemPayload,
+): Promise<WorkItem> {
   const { data } = await apiClient.patch<WorkItem>(`/work-items/${id}`, payload);
   return data;
 }
@@ -68,7 +72,10 @@ export async function deleteWorkItem(id: string): Promise<void> {
 
 // ---- Checklist de la tarea -------------------------------------------------------------
 
-export async function addChecklistItem(workItemId: string, text: string): Promise<WorkItemChecklistItem> {
+export async function addChecklistItem(
+  workItemId: string,
+  text: string,
+): Promise<WorkItemChecklistItem> {
   const { data } = await apiClient.post<WorkItemChecklistItem>(
     `/work-items/${workItemId}/checklist`,
     { text },
@@ -97,7 +104,10 @@ export async function deleteChecklistItem(workItemId: string, itemId: string): P
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 export const ACCEPTED_IMAGE_TYPES = 'image/png,image/jpeg,image/gif,image/webp';
 
-export async function uploadWorkItemImage(workItemId: string, file: File): Promise<WorkItemAttachment> {
+export async function uploadWorkItemImage(
+  workItemId: string,
+  file: File,
+): Promise<WorkItemAttachment> {
   const form = new FormData();
   form.append('file', file);
   const { data } = await apiClient.post<WorkItemAttachment>(
@@ -109,7 +119,10 @@ export async function uploadWorkItemImage(workItemId: string, file: File): Promi
 
 // La imagen se pide con el token (axios) y se convierte en un object URL: un <img src> directo
 // a la API no manda el header Authorization.
-export async function fetchWorkItemImageBlob(workItemId: string, attachmentId: string): Promise<Blob> {
+export async function fetchWorkItemImageBlob(
+  workItemId: string,
+  attachmentId: string,
+): Promise<Blob> {
   const { data } = await apiClient.get<Blob>(
     `/work-items/${workItemId}/attachments/${attachmentId}`,
     { responseType: 'blob' },

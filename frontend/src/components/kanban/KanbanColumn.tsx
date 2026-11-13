@@ -10,6 +10,7 @@ export function KanbanColumn({
   onDrop,
   onCardClick,
   canDrag = true,
+  showQaFlag = false,
 }: {
   status: WorkItemStatus;
   label: string;
@@ -19,6 +20,8 @@ export function KanbanColumn({
   onCardClick: (item: WorkItem) => void;
   // false para el perfil QA: ve el avance pero no mueve tarjetas.
   canDrag?: boolean;
+  // Marca las tarjetas tildadas "Visible para QA" (para el equipo, no para QA).
+  showQaFlag?: boolean;
 }) {
   const [isOver, setIsOver] = useState(false);
 
@@ -52,6 +55,7 @@ export function KanbanColumn({
             onDragStart={onDragStart}
             onClick={onCardClick}
             draggable={canDrag}
+            showQaFlag={showQaFlag}
           />
         ))}
         {items.length === 0 && <p className="px-1 text-xs text-slate-400">Sin tareas</p>}
