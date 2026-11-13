@@ -35,8 +35,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loadCurrentUser();
   }, [loadCurrentUser]);
 
-  const login = useCallback(async (email: string, password: string) => {
-    const { data } = await apiClient.post('/auth/login', { email, password });
+  // identifier: email o DNI (con o sin puntos).
+  const login = useCallback(async (identifier: string, password: string) => {
+    const { data } = await apiClient.post('/auth/login', { identifier, password });
     tokenStorage.setTokens(data.accessToken, data.refreshToken);
     setUser(data.user);
   }, []);
@@ -55,9 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={{ user, loading, login, logout }}>{children}</AuthContext.Provider>
   );
 }
 

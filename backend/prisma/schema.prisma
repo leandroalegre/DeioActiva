@@ -32,6 +32,9 @@ model Role {
 model User {
   id           String    @id @default(uuid())
   email        String    @unique
+  // Opcional. Permite iniciar sesion con el DNI ademas del email (mismo acceso que en el otro
+  // sistema que usa DNI). Se guarda solo con digitos, ver common/utils/dni.ts.
+  dni          String?   @unique @db.VarChar(20)
   passwordHash String
   fullName     String
   roleId       String

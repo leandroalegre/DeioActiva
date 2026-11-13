@@ -6,7 +6,7 @@ export function LoginPage() {
   const { user, login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -21,10 +21,10 @@ export function LoginPage() {
     setError(null);
     setSubmitting(true);
     try {
-      await login(email, password);
+      await login(identifier.trim(), password);
       navigate('/', { replace: true });
     } catch {
-      setError('Email o password incorrectos.');
+      setError('Email/DNI o contraseña incorrectos.');
     } finally {
       setSubmitting(false);
     }
@@ -39,12 +39,21 @@ export function LoginPage() {
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Email</label>
+            <label
+              htmlFor="login-identifier"
+              className="mb-1 block text-sm font-medium text-slate-700"
+            >
+              Email o DNI
+            </label>
             <input
-              type="email"
+              id="login-identifier"
+              type="text"
+              autoComplete="username"
+              autoCapitalize="none"
+              spellCheck={false}
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>

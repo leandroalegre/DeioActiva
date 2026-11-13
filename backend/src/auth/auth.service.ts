@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { PrismaService } from '../common/prisma/prisma.service';
+import { normalizeDni } from '../common/utils/dni';
 import { AUTH_USER_INCLUDE, toAuthenticatedUser } from './types/authenticated-user.type';
 
 function hashToken(token: string): string {
@@ -42,9 +43,19 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
-  async login(email: string, password: string, meta?: { userAgent?: string; ipAddress?: string }) {
+  // identifier: email o DNI. Si tiene "@" es un email; si no, se busca por DNI (solo digitos).
+  async login(
+    identifier: string,
+    password: string,
+    meta?: { userAgent?: string; ipAddress?: string },
+  ) {
+    const value = identifier.trim();
+    const dni = value.includes('@') ? null : normalizeDni(value);
+    if (!value || (!value.includes('@') && !dni)) {
+      throw new UnauthorizedException('Credenciales invalidas');
+    }
     const user = await this.prisma.user.findUnique({
-      where: { email },
+      where: dni ? { dni } : { email: value },
       include: AUTH_USER_INCLUDE,
     });
 

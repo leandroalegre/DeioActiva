@@ -11,6 +11,7 @@ export async function fetchUsers(): Promise<AppUser[]> {
 
 export interface CreateUserPayload {
   email: string;
+  dni?: string;
   password: string;
   fullName: string;
   roleId: string;
@@ -25,6 +26,8 @@ export async function createUser(payload: CreateUserPayload): Promise<AppUser> {
 
 export interface UpdateUserPayload {
   email?: string;
+  // String vacio borra el DNI.
+  dni?: string;
   fullName?: string;
   roleId?: string;
   additionalRoleIds?: string[];

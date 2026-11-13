@@ -3,8 +3,9 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { ROLE_CODES } from '../common/constants/roles.constant';
 import { CreateMeetingUserDto } from './dto/meeting-user.dto';
+import { normalizeDni } from '../common/utils/dni';
 
-const SELECT = { id: true, fullName: true, email: true, active: true, createdAt: true };
+const SELECT = { id: true, fullName: true, email: true, dni: true, active: true, createdAt: true };
 
 // Usuarios del perfil Reuniones. El perfil Reuniones puede darlos de alta, pero solo con
 // ese rol: el rol se fija aca y nunca se toma del request.
@@ -26,6 +27,10 @@ export class MeetingUsersService {
     if (existing) {
       throw new ConflictException('Ya existe un usuario con ese email');
     }
+    const dni = normalizeDni(dto.dni);
+    if (dni && (await this.prisma.user.findUnique({ where: { dni } }))) {
+      throw new ConflictException('Ya existe un usuario con ese DNI');
+    }
     const role = await this.prisma.role.findUnique({ where: { code: ROLE_CODES.REUNIONES } });
     if (!role) {
       throw new InternalServerErrorException('No existe el rol Reuniones');
@@ -33,6 +38,7 @@ export class MeetingUsersService {
     return this.prisma.user.create({
       data: {
         email,
+        dni,
         fullName: dto.fullName.trim(),
         passwordHash: await bcrypt.hash(dto.password, 10),
         roleId: role.id,

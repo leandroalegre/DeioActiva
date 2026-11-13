@@ -73,7 +73,10 @@ export async function createMeeting(payload: MeetingPayload): Promise<Meeting> {
   return data;
 }
 
-export async function updateMeeting(id: string, payload: Partial<MeetingPayload>): Promise<Meeting> {
+export async function updateMeeting(
+  id: string,
+  payload: Partial<MeetingPayload>,
+): Promise<Meeting> {
   const { data } = await apiClient.patch<Meeting>(`/meetings/${id}`, payload);
   return data;
 }
@@ -115,7 +118,10 @@ export async function reorderPoints(meetingId: string, pointIds: string[]): Prom
   return data;
 }
 
-export async function updatePoint(pointId: string, payload: Partial<PointPayload>): Promise<MeetingPoint> {
+export async function updatePoint(
+  pointId: string,
+  payload: Partial<PointPayload>,
+): Promise<MeetingPoint> {
   const { data } = await apiClient.patch<MeetingPoint>(`/meeting-points/${pointId}`, payload);
   return data;
 }
@@ -169,6 +175,7 @@ export interface MeetingUser {
   id: string;
   fullName: string;
   email: string;
+  dni?: string | null;
   active: boolean;
   createdAt: string;
 }
@@ -181,6 +188,7 @@ export async function fetchMeetingUsers(): Promise<MeetingUser[]> {
 export async function createMeetingUser(payload: {
   fullName: string;
   email: string;
+  dni?: string;
   password: string;
 }): Promise<MeetingUser> {
   const { data } = await apiClient.post<MeetingUser>('/meeting-users', payload);
