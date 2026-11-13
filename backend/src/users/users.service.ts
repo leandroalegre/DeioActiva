@@ -8,11 +8,13 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { normalizeDni } from '../common/utils/dni';
 import { PaginatedResult, PaginationQueryDto } from '../common/dto/pagination-query.dto';
 
 const SAFE_SELECT = {
   id: true,
   email: true,
+  dni: true,
   fullName: true,
   active: true,
   createdAt: true,
@@ -85,11 +87,22 @@ export class UsersService {
     }
   }
 
+  // El DNI es unico: si ya lo tiene otro usuario se avisa con un 409 claro.
+  private async assertDniFree(dni: string | null, exceptUserId?: string) {
+    if (!dni) return;
+    const owner = await this.prisma.user.findUnique({ where: { dni }, select: { id: true } });
+    if (owner && owner.id !== exceptUserId) {
+      throw new ConflictException('Ya existe un usuario con ese DNI');
+    }
+  }
+
   async create(dto: CreateUserDto) {
     const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (existing) {
       throw new ConflictException('Ya existe un usuario con ese email');
     }
+    const dni = normalizeDni(dto.dni);
+    await this.assertDniFree(dni);
 
     const additionalRoleIds = await this.normalizeAdditionalRoles(
       dto.roleId,
@@ -99,6 +112,7 @@ export class UsersService {
     const created = await this.prisma.user.create({
       data: {
         email: dto.email,
+        dni,
         passwordHash,
         fullName: dto.fullName,
         roleId: dto.roleId,
@@ -118,6 +132,12 @@ export class UsersService {
       roleId: dto.roleId,
       active: dto.active,
     };
+
+    if (dto.dni !== undefined) {
+      const dni = normalizeDni(dto.dni);
+      await this.assertDniFree(dni, id);
+      data.dni = dni;
+    }
 
     if (dto.password) {
       data.passwordHash = await bcrypt.hash(dto.password, 10);

@@ -12,7 +12,11 @@ export function UsuariosPage() {
   const { user: currentUser } = useAuth();
   const isAdmin = Boolean(currentUser && hasAnyRole(currentUser, ADMIN_ROLES));
 
-  const { data: users, isLoading, isError } = useQuery({
+  const {
+    data: users,
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: ['users'],
     queryFn: fetchUsers,
     enabled: isAdmin,
@@ -35,7 +39,9 @@ export function UsuariosPage() {
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-slate-800">Usuarios</h1>
-          <p className="text-sm text-slate-500">Altas, roles y estado de las cuentas del sistema.</p>
+          <p className="text-sm text-slate-500">
+            Altas, roles y estado de las cuentas del sistema.
+          </p>
         </div>
         <button
           onClick={() => setModalState({ mode: 'create' })}
@@ -58,7 +64,7 @@ export function UsuariosPage() {
             <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3 font-medium">Nombre</th>
-                <th className="px-4 py-3 font-medium">Email</th>
+                <th className="px-4 py-3 font-medium">Email / DNI</th>
                 <th className="px-4 py-3 font-medium">Rol</th>
                 <th className="px-4 py-3 font-medium">Estado</th>
                 <th className="px-4 py-3 font-medium">Ultimo acceso</th>
@@ -69,7 +75,10 @@ export function UsuariosPage() {
               {(users ?? []).map((u) => (
                 <tr key={u.id} className="hover:bg-slate-50">
                   <td className="px-4 py-3 font-medium text-slate-800">{u.fullName}</td>
-                  <td className="px-4 py-3 text-slate-600">{u.email}</td>
+                  <td className="px-4 py-3 text-slate-600">
+                    {u.email}
+                    {u.dni && <span className="block text-xs text-slate-400">DNI {u.dni}</span>}
+                  </td>
                   <td className="px-4 py-3">
                     <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
                       {u.role.name}

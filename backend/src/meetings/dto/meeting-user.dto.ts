@@ -1,5 +1,14 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsString, MaxLength, MinLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IsEmail,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+  MinLength,
+  ValidateIf,
+} from 'class-validator';
+import { DNI_PATTERN } from '../../common/utils/dni';
 
 // Alta de un usuario desde la seccion Reuniones: el rol NO viene del cliente, siempre es
 // "reuniones" (ver MeetingUsersService).
@@ -13,6 +22,13 @@ export class CreateMeetingUserDto {
   @ApiProperty()
   @IsEmail()
   email: string;
+
+  @ApiPropertyOptional({ description: 'DNI (opcional, con o sin puntos)' })
+  @IsOptional()
+  @IsString()
+  @ValidateIf((o) => typeof o.dni === 'string' && o.dni.trim() !== '')
+  @Matches(DNI_PATTERN, { message: 'El DNI tiene que tener entre 6 y 10 números' })
+  dni?: string;
 
   @ApiProperty()
   @IsString()

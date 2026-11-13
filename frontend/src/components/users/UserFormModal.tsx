@@ -1,6 +1,7 @@
 import { FormEvent, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createUser, updateUser } from '../../lib/users-api';
+import { getApiErrorMessage } from '../../lib/api-client';
 import { fetchRoles } from '../../lib/roles-api';
 import type { AppUser } from '../../types/user';
 import { SCOPED_ROLE_PATHS } from '../../config/roles';
@@ -15,6 +16,7 @@ export function UserFormModal({ user, onClose }: { user?: AppUser; onClose: () =
   const isEditing = Boolean(user);
 
   const [email, setEmail] = useState(user?.email ?? '');
+  const [dni, setDni] = useState(user?.dni ?? '');
   const [fullName, setFullName] = useState(user?.fullName ?? '');
   const [roleId, setRoleId] = useState(user?.role.id ?? '');
   const [additionalRoleIds, setAdditionalRoleIds] = useState<string[]>(
@@ -30,6 +32,7 @@ export function UserFormModal({ user, onClose }: { user?: AppUser; onClose: () =
       if (isEditing) {
         return updateUser(user!.id, {
           email,
+          dni: dni.trim(),
           fullName,
           roleId,
           additionalRoleIds: extraRoleIds,
@@ -39,6 +42,7 @@ export function UserFormModal({ user, onClose }: { user?: AppUser; onClose: () =
       }
       return createUser({
         email,
+        dni: dni.trim() || undefined,
         fullName,
         roleId,
         additionalRoleIds: extraRoleIds,
@@ -50,9 +54,12 @@ export function UserFormModal({ user, onClose }: { user?: AppUser; onClose: () =
       queryClient.invalidateQueries({ queryKey: ['users'] });
       onClose();
     },
-    onError: () =>
+    onError: (err) =>
       setError(
-        'No se pudo guardar el usuario. Revisá que el email no esté repetido e intentá de nuevo.',
+        getApiErrorMessage(
+          err,
+          'No se pudo guardar el usuario. Revisá que el email y el DNI no estén repetidos e intentá de nuevo.',
+        ),
       ),
   });
 
@@ -92,6 +99,20 @@ export function UserFormModal({ user, onClose }: { user?: AppUser; onClose: () =
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">
+              DNI{' '}
+              <span className="font-normal text-slate-400">(opcional, para ingresar con DNI)</span>
+            </label>
+            <input
+              inputMode="numeric"
+              value={dni}
+              onChange={(e) => setDni(e.target.value)}
+              placeholder="Ej. 30123456"
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>

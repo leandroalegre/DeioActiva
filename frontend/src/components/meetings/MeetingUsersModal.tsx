@@ -18,16 +18,24 @@ export function MeetingUsersModal({ onClose }: { onClose: () => void }) {
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
+  const [dni, setDni] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<string | null>(null);
 
   const mutation = useMutation({
-    mutationFn: () => createMeetingUser({ fullName: fullName.trim(), email: email.trim(), password }),
+    mutationFn: () =>
+      createMeetingUser({
+        fullName: fullName.trim(),
+        email: email.trim(),
+        dni: dni.trim() || undefined,
+        password,
+      }),
     onSuccess: (u) => {
       setCreated(u.fullName);
       setFullName('');
       setEmail('');
+      setDni('');
       setPassword('');
       queryClient.invalidateQueries({ queryKey: ['meeting-users'] });
       queryClient.invalidateQueries({ queryKey: ['meeting-options'] });
@@ -70,7 +78,10 @@ export function MeetingUsersModal({ onClose }: { onClose: () => void }) {
               >
                 <span className="min-w-0">
                   <span className="block truncate font-medium text-slate-800">{u.fullName}</span>
-                  <span className="block truncate text-xs text-slate-500">{u.email}</span>
+                  <span className="block truncate text-xs text-slate-500">
+                    {u.email}
+                    {u.dni ? ` · DNI ${u.dni}` : ''}
+                  </span>
                 </span>
                 {!u.active && (
                   <span className="shrink-0 rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
@@ -80,7 +91,9 @@ export function MeetingUsersModal({ onClose }: { onClose: () => void }) {
               </li>
             ))}
             {!isLoading && (users ?? []).length === 0 && (
-              <li className="text-sm text-slate-400">Todavía no hay usuarios con perfil Reuniones.</li>
+              <li className="text-sm text-slate-400">
+                Todavía no hay usuarios con perfil Reuniones.
+              </li>
             )}
           </ul>
 
@@ -90,7 +103,12 @@ export function MeetingUsersModal({ onClose }: { onClose: () => void }) {
               <label htmlFor="mu-name" className={LABEL}>
                 Nombre y apellido
               </label>
-              <input id="mu-name" value={fullName} onChange={(e) => setFullName(e.target.value)} className={INPUT} />
+              <input
+                id="mu-name"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className={INPUT}
+              />
             </div>
             <div>
               <label htmlFor="mu-email" className={LABEL}>
@@ -105,8 +123,21 @@ export function MeetingUsersModal({ onClose }: { onClose: () => void }) {
               />
             </div>
             <div>
+              <label htmlFor="mu-dni" className={LABEL}>
+                DNI <span className="font-normal text-slate-400">(opcional)</span>
+              </label>
+              <input
+                id="mu-dni"
+                inputMode="numeric"
+                value={dni}
+                onChange={(e) => setDni(e.target.value)}
+                className={INPUT}
+              />
+            </div>
+            <div>
               <label htmlFor="mu-pass" className={LABEL}>
-                Contraseña inicial <span className="font-normal text-slate-400">(mínimo 8 caracteres)</span>
+                Contraseña inicial{' '}
+                <span className="font-normal text-slate-400">(mínimo 8 caracteres)</span>
               </label>
               <input
                 id="mu-pass"
@@ -117,7 +148,9 @@ export function MeetingUsersModal({ onClose }: { onClose: () => void }) {
                 className={INPUT}
               />
             </div>
-            <p className="text-xs text-slate-500">Perfil: <span className="font-semibold">Reuniones</span></p>
+            <p className="text-xs text-slate-500">
+              Perfil: <span className="font-semibold">Reuniones</span>
+            </p>
             {error && <p className="text-sm text-red-600">{error}</p>}
             {created && <p className="text-sm text-green-700">Usuario “{created}” creado.</p>}
             <div className="flex justify-end">

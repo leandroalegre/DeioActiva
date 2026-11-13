@@ -23,7 +23,7 @@ export class AuthController {
   @Public()
   @Post('login')
   login(@Body() dto: LoginDto, @Req() req: Request) {
-    return this.authService.login(dto.email, dto.password, this.meta(req));
+    return this.authService.login(dto.identifier ?? dto.email ?? '', dto.password, this.meta(req));
   }
 
   @Public()
