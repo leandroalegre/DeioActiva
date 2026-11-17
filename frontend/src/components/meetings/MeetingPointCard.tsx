@@ -1,4 +1,5 @@
 import { FormEvent, useState } from 'react';
+import { DictadoBoton, sumarDictado } from '../ui/DictadoBoton';
 import { Link } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -242,6 +243,11 @@ export function MeetingPointCard({
                   className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                 />
                 <div className="flex flex-wrap justify-end gap-2">
+                  <DictadoBoton
+                    etiqueta="Dictar"
+                    className="mr-auto"
+                    onTexto={(t) => setResolution((v) => sumarDictado(v, t))}
+                  />
                   <button
                     onClick={() => setEditingResolution(false)}
                     className="rounded-lg px-2 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100"
@@ -305,6 +311,7 @@ export function MeetingPointCard({
                     placeholder="Agregar avance..."
                     className="flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                   />
+                  <DictadoBoton onTexto={(t) => setNote((v) => sumarDictado(v, t))} />
                   <button
                     type="submit"
                     disabled={noteMutation.isPending || !note.trim()}

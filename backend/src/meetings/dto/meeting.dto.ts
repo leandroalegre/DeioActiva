@@ -117,6 +117,20 @@ export class UpdateMeetingDto extends PartialType(CreateMeetingDto) {
   @IsOptional()
   @IsString()
   minutesNotes?: string | null;
+
+  // Acta editable: temas y decisiones extra (uno por linea) que se suman a lo que sale del
+  // orden del dia. Se cargan desde "Editar acta".
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(20000)
+  minutesTopics?: string | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(20000)
+  minutesDecisions?: string | null;
 }
 
 export class FinishMeetingDto {

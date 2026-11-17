@@ -14,16 +14,13 @@ import {
 } from '../lib/meetings-api';
 import { getApiErrorMessage } from '../lib/api-client';
 import { useAuth } from '../app/auth/AuthContext';
-import {
-  MEETING_MANAGER_ROLES,
-  hasAnyRole,
-  isPathAllowedFor,
-  isQaRestricted,
-} from '../config/roles';
+import { canManageMeeting, isPathAllowedFor, isQaRestricted } from '../config/roles';
 import { MeetingFormModal } from '../components/meetings/MeetingFormModal';
 import { PointFormModal } from '../components/meetings/PointFormModal';
 import { MeetingPointCard } from '../components/meetings/MeetingPointCard';
 import { GenerateTasksModal } from '../components/meetings/GenerateTasksModal';
+import { QuickPointsModal } from '../components/meetings/QuickPointsModal';
+import { DictadoBoton, sumarDictado } from '../components/ui/DictadoBoton';
 import {
   MEETING_STATUSES,
   OPEN_POINT_STATUSES,
@@ -39,7 +36,6 @@ export function ReunionDetallePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const canManage = Boolean(user && hasAnyRole(user, MEETING_MANAGER_ROLES));
   // Un perfil QA entra a Tareas pero solo ve sus reportes, no las tareas de las reuniones.
   const canTrackTasks = isPathAllowedFor(user, '/tareas') && !isQaRestricted(user);
 
@@ -49,6 +45,8 @@ export function ReunionDetallePage() {
     enabled: Boolean(id),
   });
   const { data: options } = useQuery({ queryKey: ['meeting-options'], queryFn: fetchMeetingOptions });
+  // Gestores completos editan todo; "Carga de reuniones" solo las reuniones que creo.
+  const canManage = canManageMeeting(user, meeting);
 
   const [editing, setEditing] = useState(false);
   const [pointModal, setPointModal] = useState<
@@ -56,6 +54,7 @@ export function ReunionDetallePage() {
   >({ mode: 'closed' });
   const [finishOpen, setFinishOpen] = useState(false);
   const [generateOpen, setGenerateOpen] = useState(false);
+  const [quickOpen, setQuickOpen] = useState(false);
   const [minutesNotes, setMinutesNotes] = useState('');
   const [carryOpen, setCarryOpen] = useState(false);
   const [carryFrom, setCarryFrom] = useState('');
@@ -330,6 +329,13 @@ export function ReunionDetallePage() {
                   Traer pendientes
                 </button>
                 <button
+                  onClick={() => setQuickOpen(true)}
+                  className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+                  title="Varios puntos de una vez: uno por línea, @responsable y !fecha"
+                >
+                  Carga rápida
+                </button>
+                <button
                   onClick={() => setPointModal({ mode: 'create' })}
                   className="rounded-lg bg-brand-500 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-600"
                 >
@@ -470,16 +476,13 @@ export function ReunionDetallePage() {
                 })}
               </p>
             )}
-            {canManage && meeting.status === 'FINISHED' && (
-              <button
-                onClick={() => {
-                  setMinutesNotes(meeting.minutesNotes ?? '');
-                  setFinishOpen(true);
-                }}
-                className="mt-2 text-xs font-medium text-brand-600 hover:underline"
+            {canManage && (
+              <Link
+                to={`/reuniones/${meeting.id}/acta?editar=1`}
+                className="mt-2 inline-block text-xs font-medium text-brand-600 hover:underline"
               >
-                Editar observaciones
-              </button>
+                Editar acta
+              </Link>
             )}
           </div>
         </div>
@@ -495,6 +498,20 @@ export function ReunionDetallePage() {
             setMessage({
               kind: 'ok',
               text: `Se crearon ${created} tarea${created === 1 ? '' : 's'} en el Kanban.`,
+            });
+          }}
+        />
+      )}
+      {quickOpen && (
+        <QuickPointsModal
+          meetingId={meeting.id}
+          users={options?.users ?? []}
+          onClose={() => setQuickOpen(false)}
+          onDone={(n) => {
+            setQuickOpen(false);
+            setMessage({
+              kind: 'ok',
+              text: `Se agregaron ${n} punto${n === 1 ? '' : 's'} al orden del día.`,
             });
           }}
         />
@@ -538,9 +555,15 @@ export function ReunionDetallePage() {
                 traerlos a la próxima reunión con “Traer pendientes”.
               </p>
             )}
-            <label className="mb-1 block text-sm font-medium text-slate-700">
-              Observaciones generales (opcional)
-            </label>
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <label className="block text-sm font-medium text-slate-700">
+                Observaciones generales (opcional)
+              </label>
+              <DictadoBoton
+                etiqueta="Dictar"
+                onTexto={(t) => setMinutesNotes((v) => sumarDictado(v, t))}
+              />
+            </div>
             <textarea
               value={minutesNotes}
               onChange={(e) => setMinutesNotes(e.target.value)}

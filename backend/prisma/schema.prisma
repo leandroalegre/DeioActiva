@@ -362,6 +362,9 @@ model Meeting {
   status            MeetingStatus    @default(SCHEDULED)
   // Observaciones generales del acta (lo que no encaja en ningun punto puntual).
   minutesNotes      String?          @db.Text
+  // Acta editable: temas tratados y decisiones extra (uno por linea), ademas de los puntos.
+  minutesTopics     String?          @db.Text
+  minutesDecisions  String?          @db.Text
   finishedAt        DateTime?
   // Reunion anterior de la misma serie (se completa al "arrastrar pendientes").
   previousMeetingId String?
