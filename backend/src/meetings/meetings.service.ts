@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
 import {
@@ -15,6 +16,8 @@ import {
   WorkItemStatus,
 } from '@prisma/client';
 import { PrismaService } from '../common/prisma/prisma.service';
+import { isMeetingOwnerOnly } from '../common/constants/roles.constant';
+import { AuthenticatedUser } from '../auth/types/authenticated-user.type';
 import { PaginatedResult } from '../common/dto/pagination-query.dto';
 import { POINT_TYPE_TO_WORK_ITEM_TYPE } from './meeting-point-sync';
 import {
@@ -114,15 +117,50 @@ export class MeetingsService {
     return { users, modules };
   }
 
+  // ---------------------------------------------------------------- acceso por usuario
+  // El perfil "Carga de reuniones" (isMeetingOwnerOnly) ve las reuniones que creo o en las
+  // que figura como participante, y solo gestiona las que creo. El resto de los perfiles
+  // sigue igual: el RolesGuard ya decide quien lee y quien escribe.
+
+  private readableWhere(user?: AuthenticatedUser): Prisma.MeetingWhereInput {
+    if (!isMeetingOwnerOnly(user)) return {};
+    return {
+      OR: [{ createdById: user!.id }, { participants: { some: { userId: user!.id } } }],
+    };
+  }
+
+  private async assertCanRead(meetingId: string, user?: AuthenticatedUser) {
+    const meeting = await this.prisma.meeting.findFirst({
+      where: { AND: [{ id: meetingId }, this.readableWhere(user)] },
+    });
+    if (!meeting) throw new NotFoundException('Reunión no encontrada');
+    return meeting;
+  }
+
+  private async assertCanManage(meetingId: string, user?: AuthenticatedUser) {
+    const meeting = await this.assertCanRead(meetingId, user);
+    if (isMeetingOwnerOnly(user) && meeting.createdById !== user!.id) {
+      throw new ForbiddenException('Solo podés modificar las reuniones que creaste');
+    }
+    return meeting;
+  }
+
+  private async assertCanManagePoint(pointId: string, user?: AuthenticatedUser) {
+    const point = await this.ensurePoint(pointId);
+    await this.assertCanManage(point.meetingId, user);
+    return point;
+  }
+
   // ---------------------------------------------------------------- reuniones
 
-  async findAll(query: QueryMeetingsDto): Promise<PaginatedResult<unknown>> {
+  async findAll(query: QueryMeetingsDto, user?: AuthenticatedUser): Promise<PaginatedResult<unknown>> {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 20;
     const when = query.when ?? 'all';
     const today = startOfTodayUtc();
 
     const where: Prisma.MeetingWhereInput = {
+      AND: [this.readableWhere(user)],
       status: query.status,
       ...(when === 'upcoming' ? { date: { gte: today } } : {}),
       ...(when === 'past' ? { date: { lt: today } } : {}),
@@ -171,9 +209,9 @@ export class MeetingsService {
     return { data, total, page, pageSize };
   }
 
-  async findOne(id: string) {
-    const meeting = await this.prisma.meeting.findUnique({
-      where: { id },
+  async findOne(id: string, user?: AuthenticatedUser) {
+    const meeting = await this.prisma.meeting.findFirst({
+      where: { AND: [{ id }, this.readableWhere(user)] },
       include: MEETING_DETAIL_INCLUDE,
     });
     if (!meeting) {
@@ -223,12 +261,13 @@ export class MeetingsService {
     };
   }
 
-  async create(dto: CreateMeetingDto, createdById: string) {
+  async create(dto: CreateMeetingDto, user: AuthenticatedUser) {
+    const createdById = user.id;
     if (!dto.title?.trim()) throw new BadRequestException('El título es obligatorio');
     const participants = await this.buildParticipants(dto.participants ?? []);
 
     if (dto.previousMeetingId) {
-      await this.ensureExists(dto.previousMeetingId);
+      await this.assertCanRead(dto.previousMeetingId, user);
     }
 
     const meeting = await this.prisma.meeting.create({
@@ -250,20 +289,23 @@ export class MeetingsService {
     });
 
     if (dto.previousMeetingId && dto.carryOverPending) {
-      await this.carryOver(meeting.id, dto.previousMeetingId);
+      await this.carryOver(meeting.id, dto.previousMeetingId, user);
     }
 
     return this.findOne(meeting.id);
   }
 
-  async update(id: string, dto: UpdateMeetingDto) {
-    const existing = await this.ensureExists(id);
+  async update(id: string, dto: UpdateMeetingDto, user?: AuthenticatedUser) {
+    const existing = await this.assertCanManage(id, user);
     // "points" y "carryOverPending" solo aplican al alta: los puntos se editan con sus
     // propios endpoints y el arrastre de pendientes con POST /meetings/:id/carry-over.
     const { participants, previousMeetingId } = dto;
 
     if (previousMeetingId === id) {
       throw new BadRequestException('Una reunión no puede ser su propia reunión anterior');
+    }
+    if (previousMeetingId) {
+      await this.assertCanRead(previousMeetingId, user);
     }
 
     // undefined = no tocar; null o "" en campos opcionales = limpiar.
@@ -280,6 +322,8 @@ export class MeetingsService {
       frequency: dto.frequency,
       status: dto.status,
       minutesNotes: optionalText(dto.minutesNotes),
+      minutesTopics: optionalText(dto.minutesTopics),
+      minutesDecisions: optionalText(dto.minutesDecisions),
       previousMeetingId: optionalText(previousMeetingId),
     };
     if (dto.status !== undefined && dto.status !== existing.status) {
@@ -314,8 +358,8 @@ export class MeetingsService {
     return this.findOne(id);
   }
 
-  async finish(id: string, dto: FinishMeetingDto) {
-    const meeting = await this.ensureExists(id);
+  async finish(id: string, dto: FinishMeetingDto, user?: AuthenticatedUser) {
+    const meeting = await this.assertCanManage(id, user);
     if (meeting.status === MeetingStatus.CANCELLED) {
       throw new ConflictException('No se puede finalizar una reunión cancelada');
     }
@@ -331,8 +375,8 @@ export class MeetingsService {
     return this.findOne(id);
   }
 
-  async updateAttendance(id: string, dto: UpdateAttendanceDto) {
-    await this.ensureExists(id);
+  async updateAttendance(id: string, dto: UpdateAttendanceDto, user?: AuthenticatedUser) {
+    await this.assertCanManage(id, user);
     await this.prisma.$transaction(
       dto.items.map((item) =>
         this.prisma.meetingParticipant.updateMany({
@@ -346,8 +390,8 @@ export class MeetingsService {
 
   // Las tablas del hosting son MyISAM (sin foreign keys), asi que los onDelete del schema no
   // se aplican: los dependientes se borran/desvinculan a mano, en orden.
-  async remove(id: string) {
-    await this.ensureExists(id);
+  async remove(id: string, user?: AuthenticatedUser) {
+    await this.assertCanManage(id, user);
     const points = await this.prisma.meetingPoint.findMany({
       where: { meetingId: id },
       select: { id: true },
@@ -374,12 +418,12 @@ export class MeetingsService {
   // Trae a "targetId" una copia de cada punto abierto de "fromId" que todavia no se haya
   // trasladado. El punto original queda como estaba, enlazado al nuevo (carriedTo), asi el
   // historial de la reunion anterior no se pierde.
-  async carryOver(targetId: string, fromId: string) {
+  async carryOver(targetId: string, fromId: string, user?: AuthenticatedUser) {
     if (targetId === fromId) {
       throw new BadRequestException('Elegí una reunión distinta de la actual');
     }
-    await this.ensureExists(targetId);
-    await this.ensureExists(fromId);
+    await this.assertCanManage(targetId, user);
+    await this.assertCanRead(fromId, user);
 
     const openPoints = await this.prisma.meetingPoint.findMany({
       where: {
@@ -430,16 +474,10 @@ export class MeetingsService {
     return { carried: openPoints.length, meeting: await this.findOne(targetId) };
   }
 
-  private async ensureExists(id: string) {
-    const meeting = await this.prisma.meeting.findUnique({ where: { id } });
-    if (!meeting) throw new NotFoundException('Reunión no encontrada');
-    return meeting;
-  }
-
   // ---------------------------------------------------------------- puntos
 
-  async createPoint(meetingId: string, dto: CreateMeetingPointDto) {
-    await this.ensureExists(meetingId);
+  async createPoint(meetingId: string, dto: CreateMeetingPointDto, user?: AuthenticatedUser) {
+    await this.assertCanManage(meetingId, user);
     if (!dto.title?.trim()) throw new BadRequestException('El punto necesita un título');
     const last = await this.prisma.meetingPoint.aggregate({
       where: { meetingId },
@@ -451,8 +489,8 @@ export class MeetingsService {
     });
   }
 
-  async updatePoint(pointId: string, dto: UpdateMeetingPointDto) {
-    await this.ensurePoint(pointId);
+  async updatePoint(pointId: string, dto: UpdateMeetingPointDto, user?: AuthenticatedUser) {
+    await this.assertCanManagePoint(pointId, user);
     const { dueDate, title, responsibleId, description, resolution, ...rest } = dto;
     return this.prisma.meetingPoint.update({
       where: { id: pointId },
@@ -468,8 +506,8 @@ export class MeetingsService {
     });
   }
 
-  async removePoint(pointId: string) {
-    await this.ensurePoint(pointId);
+  async removePoint(pointId: string, user?: AuthenticatedUser) {
+    await this.assertCanManagePoint(pointId, user);
     await this.prisma.$transaction([
       this.prisma.meetingPoint.updateMany({
         where: { carriedFromId: pointId },
@@ -480,8 +518,8 @@ export class MeetingsService {
     ]);
   }
 
-  async reorderPoints(meetingId: string, pointIds: string[]) {
-    await this.ensureExists(meetingId);
+  async reorderPoints(meetingId: string, pointIds: string[], user?: AuthenticatedUser) {
+    await this.assertCanManage(meetingId, user);
     const existing = await this.prisma.meetingPoint.findMany({
       where: { meetingId },
       select: { id: true },
@@ -498,8 +536,12 @@ export class MeetingsService {
     return this.findOne(meetingId);
   }
 
-  async addNote(pointId: string, dto: CreatePointNoteDto, authorId: string) {
-    await this.ensurePoint(pointId);
+  async addNote(pointId: string, dto: CreatePointNoteDto, user: AuthenticatedUser) {
+    const authorId = user.id;
+    const point = await this.ensurePoint(pointId);
+    // Cualquiera que vea la reunion puede dejar un avance (Carga de reuniones, tambien en
+    // las ajenas donde participa).
+    await this.assertCanRead(point.meetingId, user);
     const text = dto.text.trim();
     if (!text) throw new BadRequestException('El avance no puede estar vacío');
     return this.prisma.meetingPointNote.create({
@@ -509,13 +551,13 @@ export class MeetingsService {
   }
 
   // Puntos abiertos de todas las reuniones (no trasladados), para el tablero de pendientes.
-  async pendingPoints(query: QueryPendingPointsDto) {
+  async pendingPoints(query: QueryPendingPointsDto, user?: AuthenticatedUser) {
     return this.prisma.meetingPoint.findMany({
       where: {
         status: { in: OPEN_POINT_STATUSES },
         carriedTo: { is: null },
         responsibleId: query.responsibleId,
-        meeting: { status: { not: MeetingStatus.CANCELLED } },
+        meeting: { AND: [{ status: { not: MeetingStatus.CANCELLED } }, this.readableWhere(user)] },
       },
       orderBy: [{ dueDate: { sort: 'asc', nulls: 'last' } }, { createdAt: 'asc' }],
       take: 300,
@@ -530,9 +572,13 @@ export class MeetingsService {
 
   // Crea una tarea del Kanban a partir de un punto (ej. una accion acordada en la reunion)
   // y deja el punto enlazado a esa tarea.
-  async createWorkItemFromPoint(pointId: string, dto: CreateWorkItemFromPointDto, userId: string) {
-    await this.ensurePoint(pointId);
-    await this.createWorkItemsForPoints([{ ...dto, pointId }], userId);
+  async createWorkItemFromPoint(
+    pointId: string,
+    dto: CreateWorkItemFromPointDto,
+    user: AuthenticatedUser,
+  ) {
+    await this.assertCanManagePoint(pointId, user);
+    await this.createWorkItemsForPoints([{ ...dto, pointId }], user.id);
     return this.prisma.meetingPoint.findUniqueOrThrow({
       where: { id: pointId },
       include: POINT_INCLUDE,
@@ -541,8 +587,12 @@ export class MeetingsService {
 
   // Generacion en lote: una tarea por punto elegido, todo en una transaccion (o se crean
   // todas o ninguna). Los puntos deben ser de esta reunion y no tener tarea todavia.
-  async generateWorkItems(meetingId: string, items: GenerateWorkItemItemDto[], userId: string) {
-    await this.ensureExists(meetingId);
+  async generateWorkItems(
+    meetingId: string,
+    items: GenerateWorkItemItemDto[],
+    user: AuthenticatedUser,
+  ) {
+    await this.assertCanManage(meetingId, user);
     const pointIds = items.map((i) => i.pointId);
     if (new Set(pointIds).size !== pointIds.length) {
       throw new BadRequestException('Hay puntos repetidos en la lista');
@@ -553,7 +603,7 @@ export class MeetingsService {
     if (count !== pointIds.length) {
       throw new BadRequestException('Algún punto no pertenece a esta reunión');
     }
-    const created = await this.createWorkItemsForPoints(items, userId);
+    const created = await this.createWorkItemsForPoints(items, user.id);
     return { created, meeting: await this.findOne(meetingId) };
   }
 

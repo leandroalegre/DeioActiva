@@ -4,12 +4,20 @@ export const ADMIN_ROLES = ['super_admin', 'admin'];
 // Pueden crear/editar/eliminar reuniones y sus puntos.
 export const MEETING_MANAGER_ROLES = ['super_admin', 'admin', 'reuniones'];
 
+// Carga de reuniones: crea reuniones y gestiona solo las suyas; las ajenas donde lo invitan
+// las ve sin editar (el backend aplica lo mismo).
+export const CARGA_REUNIONES_ROLE = 'carga_reuniones';
+
+// Puede crear reuniones (gestores completos + Carga de reuniones).
+export const MEETING_CREATOR_ROLES = [...MEETING_MANAGER_ROLES, CARGA_REUNIONES_ROLE];
+
 export const QA_ROLE = 'qa';
 
 // Roles acotados: solo ven las rutas listadas y su "home" es la primera. El backend aplica
 // la misma restriccion (RolesGuard + @ScopedRolesAllowed), esto es solo la parte visual.
 export const SCOPED_ROLE_PATHS: Record<string, string[]> = {
   reuniones: ['/reuniones'],
+  carga_reuniones: ['/reuniones'],
   qa: ['/tareas'],
 };
 
@@ -45,4 +53,18 @@ export function isPathAllowedFor(user: RoleHolder, pathname: string): boolean {
 // mueve ni edita. Un admin o developer que ademas tenga QA trabaja normalmente.
 export function isQaRestricted(user: RoleHolder): boolean {
   return roleCodesOf(user).includes(QA_ROLE) && scopedPathsFor(user) !== null;
+}
+
+// Puede editar esta reunion: gestor completo, o Carga de reuniones si la creo.
+export function canManageMeeting(
+  user: (RoleHolder & { id?: string }) | null | undefined,
+  meeting: { createdById?: string | null } | null | undefined,
+): boolean {
+  if (!user || !meeting) return false;
+  if (hasAnyRole(user, MEETING_MANAGER_ROLES)) return true;
+  return (
+    roleCodesOf(user).includes(CARGA_REUNIONES_ROLE) &&
+    !!user.id &&
+    meeting.createdById === user.id
+  );
 }
