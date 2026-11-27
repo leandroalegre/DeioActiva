@@ -62,8 +62,8 @@ export function QuickPointsModal({
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-      <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 sm:items-center sm:p-4">
+      <div className="max-h-[92dvh] w-full max-w-2xl overflow-y-auto rounded-t-2xl bg-white p-4 shadow-xl sm:rounded-2xl sm:p-6">
         <h2 className="text-lg font-semibold text-slate-800">Carga rápida de puntos</h2>
         <p className="mb-3 mt-1 text-xs text-slate-500">
           Un punto por línea. <b>@nombre</b> asigna el responsable y <b>!20/11</b> la fecha de
@@ -97,7 +97,7 @@ export function QuickPointsModal({
         />
 
         {lines.length > 0 && (
-          <div className="mt-3 overflow-hidden rounded-lg border border-slate-200">
+          <div className="mt-3 overflow-x-auto rounded-lg border border-slate-200">
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-50 text-xs uppercase text-slate-500">
                 <tr>
