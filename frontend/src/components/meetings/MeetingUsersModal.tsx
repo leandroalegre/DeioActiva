@@ -2,6 +2,7 @@ import { FormEvent, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createMeetingUser, fetchMeetingUsers } from '../../lib/meetings-api';
 import { getApiErrorMessage } from '../../lib/api-client';
+import { PasswordInput } from '../common/PasswordInput';
 
 const INPUT =
   'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500';
@@ -59,16 +60,16 @@ export function MeetingUsersModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-      <div className="flex max-h-[92vh] w-full max-w-lg flex-col rounded-2xl bg-white shadow-xl">
-        <div className="border-b border-slate-100 px-6 py-4">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 sm:items-center sm:p-4">
+      <div className="flex max-h-[92dvh] w-full max-w-lg flex-col rounded-t-2xl bg-white shadow-xl sm:rounded-2xl">
+        <div className="border-b border-slate-100 px-4 sm:px-6 py-4">
           <h2 className="text-lg font-semibold text-slate-800">Usuarios de Reuniones</h2>
           <p className="text-xs text-slate-500">
             Los usuarios que se crean acá tienen el perfil Reuniones: solo acceden a esta sección.
           </p>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-4">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4">
           <ul className="mb-5 space-y-1.5">
             {isLoading && <li className="text-sm text-slate-500">Cargando...</li>}
             {(users ?? []).map((u) => (
@@ -139,9 +140,8 @@ export function MeetingUsersModal({ onClose }: { onClose: () => void }) {
                 Contraseña inicial{' '}
                 <span className="font-normal text-slate-400">(mínimo 8 caracteres)</span>
               </label>
-              <input
+              <PasswordInput
                 id="mu-pass"
-                type="password"
                 autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -165,7 +165,7 @@ export function MeetingUsersModal({ onClose }: { onClose: () => void }) {
           </form>
         </div>
 
-        <div className="flex justify-end border-t border-slate-100 px-6 py-4">
+        <div className="flex justify-end border-t border-slate-100 px-4 sm:px-6 py-4">
           <button
             onClick={onClose}
             className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"

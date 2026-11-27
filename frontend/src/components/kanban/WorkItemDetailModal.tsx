@@ -1,9 +1,9 @@
 import { FormEvent, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchComments, createComment, updateComment } from '../../lib/comments-api';
-import { updateWorkItem } from '../../lib/work-items-api';
+import { updateWorkItem, updateWorkItemStatus } from '../../lib/work-items-api';
 import { WORK_ITEM_AREAS, WORK_ITEM_PRIORITIES, WORK_ITEM_STATUSES, WORK_ITEM_TYPES } from '../../types/work-item';
-import type { WorkItem, WorkItemArea } from '../../types/work-item';
+import type { WorkItem, WorkItemArea, WorkItemStatus } from '../../types/work-item';
 import type { WorkItemComment } from '../../types/comment';
 import { WorkItemChecklistSection } from './WorkItemChecklist';
 import { WorkItemImagesSection } from './WorkItemImages';
@@ -71,6 +71,13 @@ export function WorkItemDetailModal({
     onError: () => setError('No se pudo actualizar el área. Intentá de nuevo.'),
   });
 
+  // Cambio de estado desde el detalle: en el celular no se puede arrastrar entre columnas.
+  const statusMutation = useMutation({
+    mutationFn: (newStatus: WorkItemStatus) => updateWorkItemStatus(item.id, newStatus),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['work-items'] }),
+    onError: () => setError('No se pudo cambiar el estado. Intentá de nuevo.'),
+  });
+
   const resolveMutation = useMutation({
     mutationFn: ({ id, resolved }: { id: string; resolved: boolean }) =>
       updateComment(id, { resolved }),
@@ -100,10 +107,10 @@ export function WorkItemDetailModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 sm:items-center sm:p-4">
+      <div className="max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-white p-4 shadow-xl sm:rounded-2xl sm:p-6">
         <div className="mb-1 flex items-start justify-between gap-3">
-          <h2 className="text-lg font-semibold text-slate-800">{item.title}</h2>
+          <h2 className="min-w-0 break-words text-lg font-semibold text-slate-800">{item.title}</h2>
           <div className="flex shrink-0 items-center gap-2">
             {!readOnly && (
               <button
@@ -135,12 +142,28 @@ export function WorkItemDetailModal({
               {priority.label}
             </span>
           )}
-          <span className="rounded bg-indigo-50 px-1.5 py-0.5 text-[11px] font-medium text-indigo-700">
-            {status?.label ?? item.status}
-          </span>
+          {readOnly ? (
+            <span className="rounded bg-indigo-50 px-1.5 py-0.5 text-[11px] font-medium text-indigo-700">
+              {status?.label ?? item.status}
+            </span>
+          ) : (
+            <select
+              aria-label="Estado"
+              value={item.status}
+              disabled={statusMutation.isPending}
+              onChange={(e) => statusMutation.mutate(e.target.value as WorkItemStatus)}
+              className="rounded border-0 bg-indigo-50 py-0.5 pl-1.5 pr-6 text-[11px] font-medium text-indigo-700 focus:ring-1 focus:ring-brand-500"
+            >
+              {WORK_ITEM_STATUSES.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
-        <dl className="mb-4 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-500">
+        <dl className="mb-4 grid grid-cols-1 gap-x-4 gap-y-1 text-xs text-slate-500 sm:grid-cols-2">
           <div>
             <dt className="inline font-medium text-slate-600">Módulo: </dt>
             <dd className="inline">{item.module?.name}</dd>

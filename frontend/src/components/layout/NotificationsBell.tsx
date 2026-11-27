@@ -62,7 +62,7 @@ export function NotificationsBell() {
         )}
       </button>
       {open && (
-        <div className="absolute right-0 z-40 mt-2 w-80 rounded-xl border border-slate-200 bg-white shadow-lg">
+        <div className="fixed inset-x-2 top-16 z-40 rounded-xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-80 border border-slate-200 bg-white shadow-lg">
           <div className="flex items-center justify-between border-b border-slate-100 px-3 py-2">
             <span className="text-sm font-semibold text-slate-700">Avisos</span>
             {unread > 0 && (
@@ -74,7 +74,7 @@ export function NotificationsBell() {
               </button>
             )}
           </div>
-          <ul className="max-h-96 overflow-y-auto">
+          <ul className="max-h-[70dvh] overflow-y-auto sm:max-h-96">
             {(data?.data ?? []).length === 0 && (
               <li className="px-3 py-4 text-center text-xs text-slate-400">No tenés avisos.</li>
             )}

@@ -140,13 +140,13 @@ export function MeetingFormModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-      <div className="flex max-h-[92vh] w-full max-w-2xl flex-col rounded-2xl bg-white shadow-xl">
-        <h2 className="border-b border-slate-100 px-6 py-4 text-lg font-semibold text-slate-800">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 sm:items-center sm:p-4">
+      <div className="flex max-h-[92dvh] w-full max-w-2xl flex-col rounded-t-2xl bg-white shadow-xl sm:rounded-2xl">
+        <h2 className="border-b border-slate-100 px-4 sm:px-6 py-4 text-lg font-semibold text-slate-800">
           {isEditing ? 'Editar reunión' : 'Nueva reunión'}
         </h2>
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-          <div className="grid flex-1 grid-cols-1 gap-3 overflow-y-auto px-6 py-4 sm:grid-cols-2">
+          <div className="grid flex-1 grid-cols-1 gap-3 overflow-y-auto px-4 sm:px-6 py-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <label className={LABEL}>Título</label>
               <input
@@ -333,9 +333,9 @@ export function MeetingFormModal({
             )}
           </div>
 
-          {error && <p className="px-6 text-sm text-red-600">{error}</p>}
+          {error && <p className="px-4 sm:px-6 text-sm text-red-600">{error}</p>}
 
-          <div className="flex justify-end gap-2 border-t border-slate-100 px-6 py-4">
+          <div className="flex justify-end gap-2 border-t border-slate-100 px-4 sm:px-6 py-4">
             <button
               type="button"
               onClick={onClose}

@@ -526,8 +526,8 @@ export function ReunionDetallePage() {
         />
       )}
       {finishOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 sm:items-center sm:p-4">
+          <div className="max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-white p-4 shadow-xl sm:rounded-2xl sm:p-6">
             <h2 className="mb-1 text-lg font-semibold text-slate-800">
               {meeting.status === 'FINISHED' ? 'Observaciones del acta' : 'Finalizar reunión'}
             </h2>

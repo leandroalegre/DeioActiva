@@ -118,9 +118,9 @@ export function GenerateTasksModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-      <div className="flex max-h-[92vh] w-full max-w-5xl flex-col rounded-2xl bg-white shadow-xl">
-        <div className="border-b border-slate-100 px-6 py-4">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 sm:items-center sm:p-4">
+      <div className="flex max-h-[92dvh] w-full max-w-5xl flex-col rounded-t-2xl bg-white shadow-xl sm:rounded-2xl">
+        <div className="border-b border-slate-100 px-4 sm:px-6 py-4">
           <h2 className="text-lg font-semibold text-slate-800">Generar tareas desde la reunión</h2>
           <p className="text-xs text-slate-500">
             Cada punto elegido crea una tarea en el Kanban con su resolución y la reunión de
@@ -130,17 +130,17 @@ export function GenerateTasksModal({
         </div>
 
         {candidates.length === 0 ? (
-          <p className="px-6 py-10 text-center text-sm text-slate-400">
+          <p className="px-4 sm:px-6 py-10 text-center text-sm text-slate-400">
             Todos los puntos de esta reunión ya tienen tarea (o están descartados).
           </p>
         ) : (
           <>
-            <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-slate-50 px-6 py-3 text-sm">
+            <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-slate-50 px-4 sm:px-6 py-3 text-sm">
               <span className="text-slate-600">Módulo para los seleccionados:</span>
               <select
                 value={defaultModule}
                 onChange={(e) => applyModuleToSelected(e.target.value)}
-                className="min-w-[220px] rounded-lg border border-slate-300 px-2 py-1.5 text-sm"
+                className="w-full rounded-lg border sm:w-auto sm:min-w-[220px] border-slate-300 px-2 py-1.5 text-sm"
               >
                 <option value="">Elegir...</option>
                 {modulesAsTree(options?.modules ?? []).map((m) => (
@@ -154,9 +154,9 @@ export function GenerateTasksModal({
               </span>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-6 py-3">
-              <table className="w-full text-left text-sm">
-                <thead className="text-xs font-semibold uppercase text-slate-500">
+            <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-3">
+              <table className="block w-full text-left text-sm md:table">
+                <thead className="hidden text-xs font-semibold uppercase text-slate-500 md:table-header-group">
                   <tr>
                     <th className="w-8 py-2" />
                     <th className="py-2 pr-2">Punto</th>
@@ -166,14 +166,19 @@ export function GenerateTasksModal({
                     <th className="w-40 py-2">Asignada a</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="block divide-y divide-slate-100 md:table-row-group">
                   {candidates.map((p) => {
                     const row = rows[p.id];
                     const ty = metaOf(POINT_TYPES, p.type);
                     const st = metaOf(POINT_STATUSES, p.status);
                     return (
-                      <tr key={p.id} className={row.selected ? '' : 'opacity-50'}>
-                        <td className="py-2 align-top">
+                      <tr
+                        key={p.id}
+                        className={`grid grid-cols-[1.5rem_1fr_1fr] gap-x-2 gap-y-2 py-3 md:table-row md:py-0 ${
+                          row.selected ? '' : 'opacity-50'
+                        }`}
+                      >
+                        <td className="align-top md:py-2">
                           <input
                             type="checkbox"
                             checked={row.selected}
@@ -186,7 +191,7 @@ export function GenerateTasksModal({
                             className="mt-1 rounded border-slate-300 text-brand-500"
                           />
                         </td>
-                        <td className="py-2 pr-2 align-top">
+                        <td className="col-span-2 align-top md:py-2 md:pr-2">
                           <div className="flex flex-wrap items-center gap-1.5">
                             <span className={`rounded border px-1.5 py-0.5 text-[11px] font-semibold ${ty.color}`}>
                               {ty.label}
@@ -202,7 +207,8 @@ export function GenerateTasksModal({
                             </p>
                           )}
                         </td>
-                        <td className="py-2 pr-2 align-top">
+                        <td className="col-span-2 col-start-2 align-top md:py-2 md:pr-2">
+                          <span className="mb-0.5 block text-[11px] font-medium text-slate-500 md:hidden">Módulo</span>
                           <select
                             value={row.moduleId}
                             disabled={!row.selected}
@@ -217,7 +223,8 @@ export function GenerateTasksModal({
                 ))}
                           </select>
                         </td>
-                        <td className="py-2 pr-2 align-top">
+                        <td className="col-start-2 align-top md:py-2 md:pr-2">
+                          <span className="mb-0.5 block text-[11px] font-medium text-slate-500 md:hidden">Tipo de tarea</span>
                           <select
                             value={row.type}
                             disabled={!row.selected}
@@ -231,7 +238,8 @@ export function GenerateTasksModal({
                             ))}
                           </select>
                         </td>
-                        <td className="py-2 pr-2 align-top">
+                        <td className="align-top md:py-2 md:pr-2">
+                          <span className="mb-0.5 block text-[11px] font-medium text-slate-500 md:hidden">Prioridad</span>
                           <select
                             value={row.priority}
                             disabled={!row.selected}
@@ -247,7 +255,8 @@ export function GenerateTasksModal({
                             ))}
                           </select>
                         </td>
-                        <td className="py-2 align-top">
+                        <td className="col-span-2 col-start-2 align-top md:py-2">
+                          <span className="mb-0.5 block text-[11px] font-medium text-slate-500 md:hidden">Asignada a</span>
                           <select
                             value={row.assignedToId}
                             disabled={!row.selected}
@@ -271,9 +280,9 @@ export function GenerateTasksModal({
           </>
         )}
 
-        {error && <p className="px-6 pb-2 text-sm text-red-600">{error}</p>}
+        {error && <p className="px-4 sm:px-6 pb-2 text-sm text-red-600">{error}</p>}
 
-        <div className="flex justify-end gap-2 border-t border-slate-100 px-6 py-4">
+        <div className="flex justify-end gap-2 border-t border-slate-100 px-4 sm:px-6 py-4">
           <button
             onClick={onClose}
             className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"

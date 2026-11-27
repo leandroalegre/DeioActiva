@@ -114,7 +114,7 @@ export function MeetingPointCard({
         overdue ? 'border-red-300' : 'border-slate-200'
       } ${point.status === 'CANCELLED' ? 'opacity-60' : ''}`}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex flex-wrap items-start gap-3 sm:flex-nowrap">
         <span
           className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
             closed ? 'bg-green-100 text-green-700' : 'bg-brand-50 text-brand-700'
@@ -382,13 +382,14 @@ export function MeetingPointCard({
           {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
         </div>
 
-        {/* Columna derecha: estado + acciones */}
-        <div className="flex shrink-0 flex-col items-end gap-2">
+        {/* Columna derecha: estado + acciones (en celular pasa abajo, en una fila) */}
+        <div className="flex w-full flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-2 sm:w-auto sm:shrink-0 sm:flex-col sm:flex-nowrap sm:items-end sm:border-0 sm:pt-0">
           {canManage ? (
             <select
+              aria-label="Estado del punto"
               value={point.status}
               onChange={(e) => patch.mutate({ status: e.target.value as MeetingPointStatus })}
-              className={`rounded-lg border px-2 py-1 text-xs font-semibold ${statusMeta.color}`}
+              className={`mr-auto rounded-lg border px-2 py-1 text-xs font-semibold sm:mr-0 ${statusMeta.color}`}
             >
               {POINT_STATUSES.map((s) => (
                 <option key={s.value} value={s.value}>

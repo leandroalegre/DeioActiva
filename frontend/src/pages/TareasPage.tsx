@@ -44,6 +44,8 @@ export function TareasPage() {
   });
 
   const [areaFilter, setAreaFilter] = useState<WorkItemArea | 'ALL'>('ALL');
+  // En celular se ve una columna a la vez; se elige con las pestañas de estado.
+  const [mobileStatus, setMobileStatus] = useState<WorkItemStatus | null>(null);
 
   const filteredItems = useMemo(
     () => (areaFilter === 'ALL' ? items : items?.filter((i) => i.area === areaFilter)),
@@ -58,6 +60,11 @@ export function TareasPage() {
     }
     return map;
   }, [filteredItems]);
+
+  const activeMobileStatus =
+    mobileStatus ??
+    WORK_ITEM_STATUSES.find((s) => (byStatus.get(s.value)?.length ?? 0) > 0)?.value ??
+    WORK_ITEM_STATUSES[0].value;
 
   // Si el detalle abierto quedo desactualizado (por ej. despues de agregar un comentario o
   // de refrescar la lista), lo sincronizamos con la version mas nueva del mismo item.
@@ -90,14 +97,25 @@ export function TareasPage() {
   }
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="mb-4 flex items-center justify-between">
+    <div className="flex min-h-full flex-col md:h-full">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-slate-800">Tareas</h1>
           <p className="text-sm text-slate-500">
             {qa
               ? 'Acá ves los reportes de QA y las tareas que el equipo te muestra, y en qué etapa está cada una. Hacé click en una tarjeta para ver el detalle y comentar.'
-              : 'Arrastrá una tarjeta para cambiar su estado. Hacé click para ver el detalle y dejar comentarios.'}
+              : (
+                  <>
+                    <span className="md:hidden">
+                      Elegí un estado arriba del tablero y tocá una tarjeta para ver el detalle,
+                      comentar o cambiarle el estado.
+                    </span>
+                    <span className="hidden md:inline">
+                      Arrastrá una tarjeta para cambiar su estado. Hacé click para ver el detalle y
+                      dejar comentarios.
+                    </span>
+                  </>
+                )}
           </p>
         </div>
         <button
@@ -138,10 +156,45 @@ export function TareasPage() {
       )}
 
       {!isLoading && !isError && (
-        <div className="flex flex-1 gap-6 overflow-x-auto pb-2">
+        <div
+          className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1 md:hidden"
+          role="tablist"
+          aria-label="Estados"
+        >
+          {WORK_ITEM_STATUSES.map((s) => {
+            const active = s.value === activeMobileStatus;
+            return (
+              <button
+                key={s.value}
+                role="tab"
+                aria-selected={active}
+                onClick={() => setMobileStatus(s.value)}
+                className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium ${
+                  active
+                    ? 'border-brand-500 bg-brand-500 text-white'
+                    : 'border-slate-200 bg-white text-slate-600'
+                }`}
+              >
+                {s.label}
+                <span
+                  className={`rounded-full px-1.5 text-xs ${
+                    active ? 'bg-white/25 text-white' : 'bg-slate-100 text-slate-500'
+                  }`}
+                >
+                  {byStatus.get(s.value)?.length ?? 0}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {!isLoading && !isError && (
+        <div className="mt-3 flex flex-1 gap-6 overflow-x-auto pb-2 md:mt-0">
           {WORK_ITEM_STATUSES.map((s) => (
             <KanbanColumn
               key={s.value}
+              className={s.value === activeMobileStatus ? '' : 'hidden md:flex'}
               status={s.value}
               label={s.label}
               items={byStatus.get(s.value) ?? []}

@@ -36,7 +36,7 @@ export function RoadmapPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-slate-800">Roadmap</h1>
           <p className="text-sm text-slate-500">Hitos del producto, ordenados por fecha límite.</p>
