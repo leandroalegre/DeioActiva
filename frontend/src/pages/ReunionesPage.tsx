@@ -5,7 +5,7 @@ import { fetchMeetings, fetchPendingPoints, fetchMeetingOptions } from '../lib/m
 import { MeetingFormModal } from '../components/meetings/MeetingFormModal';
 import { MeetingUsersModal } from '../components/meetings/MeetingUsersModal';
 import { useAuth } from '../app/auth/AuthContext';
-import { MEETING_MANAGER_ROLES, hasAnyRole } from '../config/roles';
+import { MEETING_CREATOR_ROLES, MEETING_MANAGER_ROLES, hasAnyRole } from '../config/roles';
 import {
   MEETING_STATUSES,
   POINT_STATUSES,
@@ -28,6 +28,8 @@ export function ReunionesPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const canManage = Boolean(user && hasAnyRole(user, MEETING_MANAGER_ROLES));
+  // "Carga de reuniones" tambien crea reuniones (y gestiona solo las suyas).
+  const canCreate = Boolean(user && hasAnyRole(user, MEETING_CREATOR_ROLES));
 
   const [tab, setTab] = useState<Tab>('meetings');
   const [when, setWhen] = useState<When>('all');
@@ -82,14 +84,16 @@ export function ReunionesPage() {
             Orden del día, resoluciones y seguimiento de los puntos acordados.
           </p>
         </div>
-        {canManage && (
+        {canCreate && (
           <div className="flex gap-2">
-            <button
-              onClick={() => setShowUsers(true)}
-              className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
-            >
-              Usuarios de Reuniones
-            </button>
+            {canManage && (
+              <button
+                onClick={() => setShowUsers(true)}
+                className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+              >
+                Usuarios de Reuniones
+              </button>
+            )}
             <button
               onClick={() => setShowCreate(true)}
               className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-600"
@@ -176,7 +180,7 @@ export function ReunionesPage() {
           {!meetingsQuery.isLoading && !meetingsQuery.isError && meetings.length === 0 && (
             <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-400">
               No hay reuniones con estos filtros
-              {canManage ? '. Creá la primera con “+ Nueva reunión”.' : '.'}
+              {canCreate ? '. Creá la primera con “+ Nueva reunión”.' : '.'}
             </div>
           )}
 
@@ -241,8 +245,10 @@ export function ReunionesPage() {
               className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
             >
               <option value="">Todos los responsables</option>
-              {/* Solo usuarios con perfil Reuniones (a pedido). */}
-              {(options?.users ?? []).filter((u) => u.role?.code === 'reuniones').map((u) => (
+              {/* Solo usuarios con perfil Reuniones o Carga de reuniones (a pedido). */}
+              {(options?.users ?? [])
+                .filter((u) => u.role?.code === 'reuniones' || u.role?.code === 'carga_reuniones')
+                .map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.fullName}
                 </option>

@@ -78,6 +78,10 @@ export interface MeetingSummary {
 
 export interface Meeting extends Omit<MeetingSummary, 'participants' | 'pointsSummary'> {
   minutesNotes?: string | null;
+  // Acta editable: temas y decisiones extra, uno por linea.
+  minutesTopics?: string | null;
+  minutesDecisions?: string | null;
+  createdById?: string | null;
   createdBy?: UserRef | null;
   createdAt: string;
   participants: MeetingParticipant[];

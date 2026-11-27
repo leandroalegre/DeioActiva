@@ -9,6 +9,7 @@ const ROLES = [
   { code: 'developer', name: 'Desarrollador' },
   { code: 'tester', name: 'Tester' },
   { code: 'reuniones', name: 'Reuniones' },
+  { code: 'carga_reuniones', name: 'Carga de reuniones' },
 ];
 
 async function seedRoles() {

@@ -8,6 +8,9 @@ export const ROLE_CODES = {
   TESTER: 'tester',
   // Perfil acotado: solo gestiona la seccion Reuniones (ver SCOPED_ROLE_CODES).
   REUNIONES: 'reuniones',
+  // Perfil acotado: carga sus propias reuniones. Ve y gestiona solo las que crea; las ajenas
+  // en las que lo invitan como participante las ve sin poder editarlas.
+  CARGA_REUNIONES: 'carga_reuniones',
   // Perfil acotado: reporta problemas en el tablero de Tareas (columna "QA / Reportes") y solo
   // ve las tarjetas que cargo. Se puede sumar como rol adicional a otro perfil.
   QA: 'qa',
@@ -23,16 +26,38 @@ export const ROLE_NAMES: Record<RoleCode, string> = {
   developer: 'Desarrollador',
   tester: 'Tester',
   reuniones: 'Reuniones',
+  carga_reuniones: 'Carga de reuniones',
   qa: 'QA / Reportes',
 };
 
 // Roles "acotados": solo pueden usar los endpoints marcados explicitamente con
 // @ScopedRolesAllowed(...). Todo lo demas (tareas, modulos, hitos, etc.) les queda vedado
 // en el RolesGuard, aunque el endpoint no tenga @Roles(...).
-export const SCOPED_ROLE_CODES: RoleCode[] = [ROLE_CODES.REUNIONES, ROLE_CODES.QA];
+export const SCOPED_ROLE_CODES: RoleCode[] = [
+  ROLE_CODES.REUNIONES,
+  ROLE_CODES.CARGA_REUNIONES,
+  ROLE_CODES.QA,
+];
 
 // Quienes pueden crear/editar/eliminar reuniones y sus puntos (super_admin siempre pasa).
 export const MEETING_MANAGER_ROLES: RoleCode[] = [ROLE_CODES.ADMIN, ROLE_CODES.REUNIONES];
+
+// Pueden usar los endpoints de alta/edicion de reuniones. "carga_reuniones" pasa el guard,
+// pero MeetingsService le limita la gestion a las reuniones que creo (isMeetingOwnerOnly).
+export const MEETING_WRITER_ROLES: RoleCode[] = [
+  ...MEETING_MANAGER_ROLES,
+  ROLE_CODES.CARGA_REUNIONES,
+];
+
+// true si el usuario solo tiene "Carga de reuniones" como perfil de reuniones (sin admin,
+// super_admin ni Reuniones completo): ve las reuniones que creo o donde participa y solo
+// gestiona las que creo.
+export function isMeetingOwnerOnly(user: { roles: string[] } | undefined | null): boolean {
+  if (!hasRole(user, ROLE_CODES.CARGA_REUNIONES)) return false;
+  return !user!.roles.some((code) =>
+    [ROLE_CODES.SUPER_ADMIN, ROLE_CODES.ADMIN, ROLE_CODES.REUNIONES].includes(code as never),
+  );
+}
 
 // Un usuario tiene un rol principal (User.role) y opcionalmente roles adicionales
 // (UserAdditionalRole). Estas funciones trabajan sobre la lista completa de codigos.

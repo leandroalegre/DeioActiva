@@ -62,6 +62,8 @@ export interface MeetingPayload {
   frequency?: MeetingFrequency;
   status?: MeetingStatus;
   minutesNotes?: string | null;
+  minutesTopics?: string | null;
+  minutesDecisions?: string | null;
   participants?: ParticipantInput[];
   points?: PointPayload[];
   previousMeetingId?: string | null;
