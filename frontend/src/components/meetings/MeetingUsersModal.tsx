@@ -2,6 +2,7 @@ import { FormEvent, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createMeetingUser, fetchMeetingUsers } from '../../lib/meetings-api';
 import { getApiErrorMessage } from '../../lib/api-client';
+import { PasswordInput } from '../common/PasswordInput';
 
 const INPUT =
   'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500';
@@ -139,9 +140,8 @@ export function MeetingUsersModal({ onClose }: { onClose: () => void }) {
                 Contraseña inicial{' '}
                 <span className="font-normal text-slate-400">(mínimo 8 caracteres)</span>
               </label>
-              <input
+              <PasswordInput
                 id="mu-pass"
-                type="password"
                 autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
