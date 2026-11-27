@@ -193,7 +193,7 @@ export function ReunionesPage() {
                 >
                   <div className="mb-2 flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="truncate font-semibold text-slate-800">{m.title}</p>
+                      <p className="break-words font-semibold text-slate-800 md:truncate">{m.title}</p>
                       {m.area && <p className="truncate text-xs text-slate-500">{m.area}</p>}
                     </div>
                     <span className={`shrink-0 rounded border px-2 py-0.5 text-xs font-medium ${st.color}`}>
@@ -209,7 +209,7 @@ export function ReunionesPage() {
                       👥 {m.participants.length} participante{m.participants.length === 1 ? '' : 's'}
                       {m.frequency !== 'UNIQUE' ? ` · 🔁 ${frequencyLabel(m.frequency)}` : ''}
                     </p>
-                    {m.location && <p className="truncate">📍 {m.location}</p>}
+                    {m.location && <p className="break-words md:truncate">📍 {m.location}</p>}
                   </div>
                   <div className="mt-3 border-t border-slate-100 pt-3">
                     <div className="mb-1 flex justify-between text-xs text-slate-500">
@@ -255,8 +255,61 @@ export function ReunionesPage() {
               No hay puntos pendientes. 🎉
             </div>
           )}
+          {/* Celular: una tarjeta por punto pendiente, con los mismos datos que la tabla. */}
           {pending.length > 0 && (
-            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <ul className="space-y-3 md:hidden">
+              {pending.map((p) => {
+                const overdue = isPointOverdue(p);
+                const st = metaOf(POINT_STATUSES, p.status);
+                const ty = metaOf(POINT_TYPES, p.type);
+                return (
+                  <li
+                    key={p.id}
+                    className={`rounded-xl border bg-white p-4 ${
+                      overdue ? 'border-red-300 bg-red-50/40' : 'border-slate-200'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <span className={`rounded border px-1.5 py-0.5 text-[11px] font-semibold ${ty.color}`}>
+                        {ty.label}
+                      </span>
+                      <span className={`rounded border px-2 py-0.5 text-xs font-medium ${st.color}`}>
+                        {st.label}
+                      </span>
+                    </div>
+                    <p className="mt-2 font-medium text-slate-800">{p.title}</p>
+                    {p.resolution && (
+                      <p className="mt-0.5 line-clamp-2 text-xs text-slate-500">{p.resolution}</p>
+                    )}
+                    <dl className="mt-3 space-y-1 border-t border-slate-100 pt-2 text-xs">
+                      <div className="flex gap-1">
+                        <dt className="font-medium text-slate-500">Reunión:</dt>
+                        <dd className="min-w-0">
+                          <Link to={`/reuniones/${p.meeting.id}`} className="text-brand-600 hover:underline">
+                            {p.meeting.title}
+                          </Link>{' '}
+                          <span className="text-slate-400">({formatDay(p.meeting.date)})</span>
+                        </dd>
+                      </div>
+                      <div className="flex gap-1">
+                        <dt className="font-medium text-slate-500">Responsable:</dt>
+                        <dd className="text-slate-600">{p.responsible?.fullName ?? '—'}</dd>
+                      </div>
+                      <div className="flex gap-1">
+                        <dt className="font-medium text-slate-500">Control:</dt>
+                        <dd className={overdue ? 'font-semibold text-red-600' : 'text-slate-600'}>
+                          {p.dueDate ? formatDay(p.dueDate) : '—'}
+                          {overdue && ' 🚩'}
+                        </dd>
+                      </div>
+                    </dl>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          {pending.length > 0 && (
+            <div className="hidden overflow-x-auto rounded-xl border border-slate-200 bg-white md:block">
               <table className="w-full text-left text-sm">
                 <thead className="bg-slate-50 text-xs font-semibold uppercase text-slate-500">
                   <tr>

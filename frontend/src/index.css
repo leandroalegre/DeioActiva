@@ -11,3 +11,12 @@ body,
 body {
   @apply bg-slate-50 text-slate-900;
 }
+
+/* Celular: inputs de 16px para que iOS no haga zoom al tocarlos. */
+@media (max-width: 639px) {
+  input:not([type='checkbox']):not([type='radio']),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}

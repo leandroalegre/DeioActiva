@@ -24,14 +24,14 @@ function ModuleNode({
   return (
     <div>
       <div
-        className="flex items-center justify-between gap-2 rounded-lg px-3 py-2 hover:bg-slate-50"
-        style={{ paddingLeft: `${12 + depth * 24}px` }}
+        className="flex flex-col gap-1 rounded-lg py-2 pl-[calc(12px+var(--depth)*16px)] pr-3 hover:bg-slate-50 sm:flex-row sm:items-center sm:justify-between sm:gap-2 sm:pl-[calc(12px+var(--depth)*24px)]"
+        style={{ '--depth': depth } as React.CSSProperties}
       >
-        <div className="flex min-w-0 items-center gap-2">
-          <span className={`truncate text-sm font-medium ${node.active ? 'text-slate-800' : 'text-slate-400 line-through'}`}>
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <span className={`break-words text-sm font-medium sm:truncate ${node.active ? 'text-slate-800' : 'text-slate-400 line-through'}`}>
             {node.name}
           </span>
-          <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-500">
+          <span className="max-w-full truncate rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-500">
             {node.slug}
           </span>
           {!node.active && (
@@ -41,7 +41,7 @@ function ModuleNode({
           )}
         </div>
         {canEdit && (
-          <div className="flex shrink-0 gap-1">
+          <div className="-ml-2 flex shrink-0 gap-1 sm:ml-0">
             <button
               onClick={() => onAddChild(node.id)}
               className="rounded px-2 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-700"
@@ -86,7 +86,7 @@ export function ModulosPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-slate-800">Módulos</h1>
           <p className="text-sm text-slate-500">
