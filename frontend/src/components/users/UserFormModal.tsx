@@ -5,6 +5,7 @@ import { getApiErrorMessage } from '../../lib/api-client';
 import { fetchRoles } from '../../lib/roles-api';
 import type { AppUser } from '../../types/user';
 import { SCOPED_ROLE_PATHS } from '../../config/roles';
+import { PasswordInput } from '../common/PasswordInput';
 
 // Solo los perfiles acotados (Reuniones, QA) tienen sentido como rol adicional: suman una
 // seccion puntual a otro perfil. Un rol completo (admin, developer) ya ve todo.
@@ -86,8 +87,8 @@ export function UserFormModal({ user, onClose }: { user?: AppUser; onClose: () =
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 sm:items-center sm:p-4">
+      <div className="max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white p-4 shadow-xl sm:rounded-2xl sm:p-6">
         <h2 className="mb-4 text-lg font-semibold text-slate-800">
           {isEditing ? 'Editar usuario' : 'Nuevo usuario'}
         </h2>
@@ -177,9 +178,8 @@ export function UserFormModal({ user, onClose }: { user?: AppUser; onClose: () =
             <label className="mb-1 block text-sm font-medium text-slate-700">
               {isEditing ? 'Nueva contraseña (opcional)' : 'Contraseña'}
             </label>
-            <input
+            <PasswordInput
               required={!isEditing}
-              type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder={isEditing ? 'Dejar en blanco para no cambiarla' : undefined}

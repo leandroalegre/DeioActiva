@@ -11,6 +11,7 @@ export function KanbanColumn({
   onCardClick,
   canDrag = true,
   showQaFlag = false,
+  className = '',
 }: {
   status: WorkItemStatus;
   label: string;
@@ -22,6 +23,8 @@ export function KanbanColumn({
   canDrag?: boolean;
   // Marca las tarjetas tildadas "Visible para QA" (para el equipo, no para QA).
   showQaFlag?: boolean;
+  // Clases extra (en celular se ocultan las columnas que no estan seleccionadas).
+  className?: string;
 }) {
   const [isOver, setIsOver] = useState(false);
 
@@ -37,9 +40,9 @@ export function KanbanColumn({
         setIsOver(false);
         onDrop(status);
       }}
-      className={`flex w-[380px] shrink-0 flex-col rounded-xl border bg-slate-100/60 p-3 transition-colors ${
+      className={`flex w-full shrink-0 flex-col rounded-xl border bg-slate-100/60 p-3 transition-colors md:w-[380px] ${
         isOver ? 'border-brand-400 bg-brand-50' : 'border-slate-200'
-      }`}
+      } ${className}`}
     >
       <div className="mb-3 flex items-center justify-between px-1">
         <h3 className="text-sm font-semibold text-slate-700">{label}</h3>

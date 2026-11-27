@@ -31,7 +31,7 @@ export function Sidebar({
           <img src="/deio-logo.png" alt="Deio" className="h-8 w-8" />
           <span className="text-lg font-semibold text-slate-800">DeioActiva</span>
         </div>
-        <nav className="flex-1 space-y-1 p-3">
+        <nav className="flex-1 space-y-1 overflow-y-auto p-3">
           {items.map((item) => (
             <NavLink
               key={item.path}

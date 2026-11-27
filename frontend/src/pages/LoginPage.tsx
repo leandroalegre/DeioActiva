@@ -1,6 +1,7 @@
 import { FormEvent, useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../app/auth/AuthContext';
+import { PasswordInput } from '../components/common/PasswordInput';
 
 export function LoginPage() {
   const { user, login } = useAuth();
@@ -31,8 +32,8 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex h-screen items-center justify-center bg-slate-50">
-      <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+    <div className="flex min-h-screen min-h-[100dvh] items-center justify-center bg-slate-50 px-4">
+      <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
         <div className="mb-6 flex items-center gap-2">
           <img src="/deio-logo.png" alt="Deio" className="h-9 w-9" />
           <span className="text-xl font-semibold text-slate-800">DeioActiva</span>
@@ -58,9 +59,12 @@ export function LoginPage() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Contraseña</label>
-            <input
-              type="password"
+            <label htmlFor="login-password" className="mb-1 block text-sm font-medium text-slate-700">
+              Contraseña
+            </label>
+            <PasswordInput
+              id="login-password"
+              autoComplete="current-password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}

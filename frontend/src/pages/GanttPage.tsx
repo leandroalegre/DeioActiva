@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchWorkItems } from '../lib/work-items-api';
 import { WORK_ITEM_STATUSES } from '../types/work-item';
@@ -31,6 +31,15 @@ function startOfDay(d: Date) {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
 }
 
+function shortDate(value: string) {
+  return new Date(value).toLocaleDateString('es-AR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit',
+    timeZone: 'UTC',
+  });
+}
+
 function monthLabel(d: Date) {
   return d.toLocaleDateString('es-AR', { month: 'short', year: '2-digit', timeZone: 'UTC' });
 }
@@ -40,6 +49,8 @@ export function GanttPage() {
     queryKey: ['work-items'],
     queryFn: fetchWorkItems,
   });
+  // En celular arranca en lista (la linea de tiempo necesita ancho); se puede cambiar.
+  const [mobileView, setMobileView] = useState<'list' | 'timeline'>('list');
 
   const scheduled = useMemo(
     () => (items ?? []).filter((i): i is WorkItem & { plannedStart: string; plannedEnd: string } =>
@@ -110,7 +121,86 @@ export function GanttPage() {
       )}
 
       {!isLoading && !isError && range && scheduled.length > 0 && (
-        <div className="flex-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-4">
+        <div className="mb-3 inline-flex self-start rounded-lg border border-slate-200 bg-white p-0.5 md:hidden">
+          {(
+            [
+              ['list', 'Lista'],
+              ['timeline', 'Línea de tiempo'],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              onClick={() => setMobileView(value)}
+              className={`rounded-md px-3 py-1.5 text-sm font-medium ${
+                mobileView === value ? 'bg-brand-500 text-white' : 'text-slate-600'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Celular, vista lista: cada tarea con sus fechas y una barrita de ubicacion en el rango. */}
+      {!isLoading && !isError && range && scheduled.length > 0 && mobileView === 'list' && (
+        <div className="space-y-4 md:hidden">
+          {byModule.map(([moduleName, moduleItems]) => (
+            <div key={moduleName}>
+              <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                {moduleName}
+              </p>
+              <ul className="space-y-2">
+                {moduleItems.map((item) => {
+                  const start = startOfDay(new Date(item.plannedStart!)).getTime();
+                  const end = startOfDay(new Date(item.plannedEnd!)).getTime();
+                  const left = ((start - range.start) / DAY_MS / range.totalDays) * 100;
+                  const width = Math.max(2, ((end - start) / DAY_MS / range.totalDays) * 100);
+                  const statusMeta = WORK_ITEM_STATUSES.find((s) => s.value === item.status);
+                  return (
+                    <li
+                      key={item.id}
+                      className="rounded-xl border border-slate-200 bg-white p-3"
+                    >
+                      <p className="text-sm font-medium leading-snug text-slate-800">
+                        {item.title}
+                      </p>
+                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+                        <span className="flex items-center gap-1">
+                          <span
+                            className={`inline-block h-2.5 w-2.5 rounded-full ${STATUS_COLOR[item.status]}`}
+                          />
+                          {statusMeta?.label ?? item.status}
+                        </span>
+                        <span>
+                          {shortDate(item.plannedStart!)} → {shortDate(item.plannedEnd!)}
+                        </span>
+                      </div>
+                      <div className="relative mt-2 h-1.5 rounded-full bg-slate-100">
+                        <div
+                          className={`absolute h-1.5 rounded-full ${STATUS_COLOR[item.status]}`}
+                          style={{ left: `${left}%`, width: `${Math.min(width, 100 - left)}%` }}
+                        />
+                        <div
+                          className="absolute -top-0.5 h-2.5 w-px bg-brand-500"
+                          style={{ left: `${range.todayOffset}%` }}
+                          title="Hoy"
+                        />
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!isLoading && !isError && range && scheduled.length > 0 && (
+        <div
+          className={`flex-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-4 ${
+            mobileView === 'list' ? 'hidden md:block' : ''
+          }`}
+        >
           <div className="min-w-[720px]">
             <div className="relative mb-2 h-6 border-b border-slate-200">
               {months.map((m, idx) => (
